@@ -15,6 +15,7 @@ due to multiple reasons:
 If the agent get a user's investment profile, including investment goal and risk tolerance, it can help the user to make investment decisions and execute trades on their behalf t achieve the expected earnings.
 
 ## System Design
+### Overall
 
   ![img.png](img.png)
 
@@ -23,4 +24,16 @@ If the agent get a user's investment profile, including investment goal and risk
 * **LLM**: The LLM component is the core of the agent system. It utilizes a large language model to understand and generate human-like text based on the input it receives. The LLM is responsible for interpreting user queries, generating responses, and making decisions based on the information available in memory and through tools.
 * **Memory**: The memory component stores relevant information that the agent can use to inform its decisions and responses. This can include user profiles, historical data, and any other context that may be useful for the agent to reference when interacting with users.
 * **Tools**: The tools component provides the agent with access to external resources and functionalities that can enhance its capabilities. This can include APIs for retrieving real-time stock data, executing trades, and performing technical analysis.
+
+### Orchestration
+We want to create an orchestration framework to conduct how the agent works by mimicking how a real trading team operates in secondary stock markets.
+Specifically, we design a four-layer orchestration framework, including **User Profile processing**, **Stock Analysis**, **Investment Decision-Making** and **Investment Decision Execution**, every of which representing a real stage when trading team try to make their investment.
+
+* **User Profile processing**: In this stage, the agent collects and processes the user's investment profile, which can be expressed as natural language or formated sheet. 
+If the natural language is provided, the agent will extract the key information by interacting with LLM. Eventually, all information will be transferred to a structured data and will be stored in short-term memory for reference in the following steps.
+What the agent collects mainly concentrated on three aspects: investment goal, risk tolerance and financial condition. The agent will continue to ask the user for more information if some compulsory data is not provided. Then, the agent will summarize the user's investment profile and confirm with the user before moving to the next stage.
+  * **Investment goal**: The agent will analyze their investment goals, including short-term investment goal, long-term investment goal and expected earnings. This information helps the agent understand the user's objectives and tailor its recommendations accordingly.
+  * **Risk tolerance**: The agent will assess the user's risk tolerance level about their comfort level with market fluctuations and acceptance of loss. This helps the agent tailor its recommendations to align with the user's risk profile.
+  * **Financial condition**: The agent will acquire the specific principal the user want to invest, which helps the agent to make investment decisions within the user's financial capacity.
+
 
