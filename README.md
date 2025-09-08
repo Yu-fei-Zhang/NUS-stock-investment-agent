@@ -16,7 +16,7 @@ If the agent get a user's investment profile, including investment goal and risk
 
 ## System Design
 
-  <img src="img.png" width="200" height="250" alt="图片描述">
+  ![img.png](img.png)
 
 * An agent system usually consists of four main components: Orchestration, LLM, Memory and Tools. We'll introduce each component in detail below.
 * **Orchestration**: The orchestration component is responsible for managing the overall workflow of the agent system. It coordinates the interactions between the LLM, memory, and tools to ensure that the agent can effectively process user inputs and generate appropriate responses. 
