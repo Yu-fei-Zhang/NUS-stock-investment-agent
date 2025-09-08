@@ -17,7 +17,7 @@ If the agent get a user's investment profile, including investment goal and risk
 ## System Design
 ### Overall
 
-  ![img.png](img.png)
+  ![1757317317557.jpg](1757317317557.jpg)
 
 * An agent system usually consists of four main components: Orchestration, LLM, Memory and Tools. We'll introduce each component in detail below.
 * **Orchestration**: The orchestration component is responsible for managing the overall workflow of the agent system. It coordinates the interactions between the LLM, memory, and tools to ensure that the agent can effectively process user inputs and generate appropriate responses. 
@@ -36,4 +36,8 @@ What the agent collects mainly concentrated on three aspects: investment goal, r
   * **Risk tolerance**: The agent will assess the user's risk tolerance level about their comfort level with market fluctuations and acceptance of loss. This helps the agent tailor its recommendations to align with the user's risk profile.
   * **Financial condition**: The agent will acquire the specific principal the user want to invest, which helps the agent to make investment decisions within the user's financial capacity.
 
+* **Stock Analysis**: In this stage, the agent conducts a comprehensive analysis of the stock market to identify potential investment opportunities. The agent will leverage various tools to gather and analyze data, including:
+  * **Market News Analysis**: The agent will use a news analysis tool to monitor and analyze relevant market news and events that may impact stock prices. This helps the agent stay informed about market trends and make timely investment decisions.
+  * **Technical Analysis**: The agent will utilize technical analysis tools to evaluate historical price patterns, trading volumes, and other technical indicators. This helps the agent identify potential entry and exit points for trades.
+  * **Fundamental Analysis**: The agent will employ fundamental analysis tools to assess the financial health and performance of companies. This includes analyzing financial statements, earnings reports, and other key metrics to determine the intrinsic value of stocks.
 
