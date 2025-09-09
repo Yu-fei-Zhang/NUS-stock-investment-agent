@@ -43,3 +43,15 @@ The assessment report for one stock contains the following aspects:
   * **Advantage Analysis**: The agent will identify the company's internal **competitive advantages** and **industry advantages**, such as market position, brand strength unique products or services and industry development space. This helps the agent assess the company's ability to maintain its market share and profitability over time.
   * **Risk Analysis**: The agent will identify the potential risks associated with the stock, including **internal risks** (e.g., financial health, management quality) and **external risks** (e.g., market competition, regulatory changes). This helps the agent understand the factors that could negatively impact the stock's performance.
 
+* **Investment Decision-Making**: In this stage, the agent will make investment decisions based on the user's investment profile and the stock analysis results stored in memory. 
+The agent will utilize the LLM to process the information and generate **investment plans**. The agent will consider various factors, including the user's investment goals, risk tolerance, and financial condition, as well as the stock's valuation, advantages, and risks.
+An investment plan typically includes the following components:
+  * **Stock Selection**: The agent will select a portfolio of stocks that align with the user's investment profile and the stock analysis results.
+  * **Position Sizing**: The agent will determine the appropriate position size for each stock in the portfolio based on the user's financial condition and risk tolerance. This helps ensure that the user does not overexpose themselves to any single stock or sector.
+  * **Entry and Exit Points**: The agent will identify optimal entry and exit points for each stock based on technical analysis and market conditions. This helps maximize potential returns while minimizing risks.
+
+* **Investment Decision Execution**: In this stage, the agent will execute the investment decisions made in the previous stage. The agent will decide the concrete trading plan for every stock emerging in the investment plan.
+Trading plan will be executed strictly by interacting with external trading APIs. The agent will monitor the market conditions and adjust the trading plan as necessary to ensure that it aligns with the user's investment profile and the stock analysis results.
+An executed trading plan illustrates the following two rules:
+  * **Buying-in Rules**: The agent will determine the specific conditions, including the related data indexes, under which to buy a stock and how much should be invested.
+  * **Selling-out Rules**: The agent will determine the specific selling points when earnings or losses reach a certain threshold.
