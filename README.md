@@ -55,3 +55,24 @@ Trading plan will be executed strictly by interacting with external trading APIs
 An executed trading plan illustrates the following two rules:
   * **Buying-in Rules**: The agent will determine the specific conditions, including the related data indexes, under which to buy a stock and how much should be invested.
   * **Selling-out Rules**: The agent will determine the specific selling points when earnings or losses reach a certain threshold.
+
+### LLM
+we want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
+
+### Memory
+* **Long-Term Memory**:
+* **Short-Term Memory**:
+
+### Tools
+Tools are essential for enhancing the capabilities of the investment agent. We have integrated several tools to provide the agent with access to real-time data and functionalities that are crucial for making informed investment decisions. The tools we have integrated include:
+* **Real-Time Stock Data API**: This tool allows the agent to retrieve up-to-date stock price data, market trends, and other relevant financial information necessary for analysis and decision-making.
+* **Trading API**: This tool enables the agent to execute trades on behalf of the user, including buying and selling stocks based on the investment decisions made by the agent.
+* **Technical Analysis Tool**: This tool provides the agent with the ability to perform technical analysis on stock price data, including calculating various technical indicators and generating charts to visualize price trends.
+* **Fundamental Analysis Tool**: This tool allows the agent to analyze a company's financial statements and other fundamental data to assess its financial health and performance.
+* **Market News Analysis Tool**: This tool enables the agent to analyze market news and sentiment to identify potential factors that could impact stock prices.
+* **Risk Assessment Tool**: This tool helps the agent evaluate the risks associated with different stocks and investment strategies, allowing it to make recommendations that align with the user's risk tolerance.
+* **Portfolio Optimization Tool**: This tool assists the agent in optimizing the user's investment portfolio by analyzing asset allocation and diversification strategies to maximize returns while minimizing risks.
+* **Backtesting Tool**: This tool allows the agent to test investment strategies using historical data to evaluate their performance and effectiveness before implementing them in real-time trading.
+* **Performance Monitoring Tool**: This tool enables the agent to monitor the performance of the user's investment portfolio in real-time, providing insights and alerts on significant changes or events that may require attention.
+* **Compliance and Regulatory Tool**: This tool ensures that the agent's investment activities comply with relevant regulations and guidelines, helping to mitigate legal and regulatory risks.
+* **User Feedback Tool**: This tool allows the agent to collect and analyze user feedback on its performance and recommendations, enabling continuous improvement and adaptation to the user's preferences and needs.
