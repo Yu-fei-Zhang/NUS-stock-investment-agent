@@ -57,12 +57,15 @@ An executed trading plan illustrates the following two rules:
   * **Selling-out Rules**: The agent will determine the specific selling points when earnings or losses reach a certain threshold.
 
 ### LLM
-we want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
+We want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
 
 ### Memory
 * **Long-Term Memory**:
+We use both relational database and vector database to store different types of information.
+  * The relational database is used to store stock analysis results, which will be kept for several days. This allows for efficient querying and retrieval of specific information when needed.
+  * The vector database is used to store unstructured data, such as market news articles and stock assessment reports. This allows for efficient similarity search and retrieval of relevant information based on the content of the documents.
 * **Short-Term Memory**:
-* 
+We use a k-v database to store the user's investment profile and other relevant context information that needs to be accessed quickly during the interaction with the agent. This allows for efficient retrieval of information and ensures that the agent can respond to user queries in a timely manner.
 
 ### Tools
 Tools are essential for enhancing the capabilities of the investment agent. We have integrated several tools to provide the agent with access to real-time data and functionalities that are crucial for making informed investment decisions. The tools we have integrated include:
