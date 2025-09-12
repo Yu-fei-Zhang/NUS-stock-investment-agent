@@ -27,7 +27,7 @@ If the agent get a user's investment profile, including investment goal and risk
 
 ### Orchestration
 We want to create an orchestration framework to conduct how the agent works by mimicking how a real trading team operates in secondary stock markets.
-Specifically, we design a four-layer orchestration framework, including **User Profile processing**, **Stock Analysis**, **Investment Decision-Making** and **Investment Decision Execution**, every of which representing a real stage when trading team try to make their investment.
+Specifically, we design a four-layer orchestration framework, including **User Profile processing**, **Stock Analysis**, **Investment Decision-Making I** and **Investment Decision-Making II**, every of which representing a real stage when trading team try to make their investment.
 
 * **User Profile processing**: In this stage, the agent collects and processes the user's investment profile, which can be expressed as natural language or formated sheet. 
 If the natural language is provided, the agent will extract the key information by interacting with LLM. Eventually, all information will be transferred to a structured data and will be stored in short-term memory for reference in the following steps.
@@ -43,25 +43,29 @@ The assessment report for one stock contains the following aspects:
   * **Advantage Analysis**: The agent will identify the company's internal **competitive advantages** and **industry advantages**, such as market position, brand strength unique products or services and industry development space. This helps the agent assess the company's ability to maintain its market share and profitability over time.
   * **Risk Analysis**: The agent will identify the potential risks associated with the stock, including **internal risks** (e.g., financial health, management quality) and **external risks** (e.g., market competition, regulatory changes). This helps the agent understand the factors that could negatively impact the stock's performance.
 
-* **Investment Decision-Making**: In this stage, the agent will make investment decisions based on the user's investment profile and the stock analysis results stored in memory. 
+* **Investment Decision-Making I**: In this stage, the agent will make investment decisions based on the user's investment profile and the stock analysis results stored in memory. 
 The agent will utilize the LLM to process the information and generate **investment plans**. The agent will consider various factors, including the user's investment goals, risk tolerance, and financial condition, as well as the stock's valuation, advantages, and risks.
 An investment plan typically includes the following components:
   * **Stock Selection**: The agent will select a portfolio of stocks that align with the user's investment profile and the stock analysis results.
   * **Position Sizing**: The agent will determine the appropriate position size for each stock in the portfolio based on the user's financial condition and risk tolerance. This helps ensure that the user does not overexpose themselves to any single stock or sector.
   * **Entry and Exit Points**: The agent will identify optimal entry and exit points for each stock based on technical analysis and market conditions. This helps maximize potential returns while minimizing risks.
 
-* **Investment Decision Execution**: In this stage, the agent will execute the investment decisions made in the previous stage. The agent will decide the concrete trading plan for every stock emerging in the investment plan.
-Trading plan will be executed strictly by interacting with external trading APIs. The agent will monitor the market conditions and adjust the trading plan as necessary to ensure that it aligns with the user's investment profile and the stock analysis results.
+* **Investment Decision-Making II**: At this stage, the agent will formulate a more detailed trading strategy, enabling users to execute trades simply by following it. Specifically, the agent will determine concrete trading plans for each stock included in the investment scheme.
+To achieve users' expected returns, the trading plan must be implemented strictly. Meanwhile, the agent will continuously monitor market dynamics and make necessary adjustments to the trading plan, ensuring it remains aligned with both the user's investment profile and the results of stock analysis.
 An executed trading plan illustrates the following two rules:
   * **Buying-in Rules**: The agent will determine the specific conditions, including the related data indexes, under which to buy a stock and how much should be invested.
   * **Selling-out Rules**: The agent will determine the specific selling points when earnings or losses reach a certain threshold.
 
 ### LLM
-we want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
+We want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
 
 ### Memory
 * **Long-Term Memory**:
+We use both relational database and vector database to store different types of information.
+  * The relational database is used to store stock analysis results, which will be kept for several days. This allows for efficient querying and retrieval of specific information when needed.
+  * The vector database is used to store unstructured data, such as market news articles and stock assessment reports. This allows for efficient similarity search and retrieval of relevant information based on the content of the documents.
 * **Short-Term Memory**:
+We use a k-v database to store the user's investment profile and other relevant context information that needs to be accessed quickly during the interaction with the agent. This allows for efficient retrieval of information and ensures that the agent can respond to user queries in a timely manner.
 
 ### Tools
 Tools are essential for enhancing the capabilities of the investment agent. We have integrated several tools to provide the agent with access to real-time data and functionalities that are crucial for making informed investment decisions. The tools we have integrated include:
