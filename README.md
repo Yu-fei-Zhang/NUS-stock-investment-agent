@@ -12,7 +12,7 @@ due to multiple reasons:
   3. **Limited personal capacity**
      * Private investors often lack the time, resources, and expertise to conduct thorough research and analysis of stocks, compared with other professional financial institutions.
 * To address these challenges, we have developed an LLM-powered investment agent, simulating professionals' behaviors in secondary stock markets, to assist users in automating their investment strategies and stock trading activities. 
-If the agent get a user's investment profile, including investment goal and risk tolerance, it can help the user to make investment decisions and execute trades on their behalf t achieve the expected earnings.
+If the agent get a user's investment profile, including investment goal and risk tolerance and other relevant information, it can offer the user detailed investment plans so that they can execute trades to achieve the expected earnings.
 
 ## System Design
 ### Overall
@@ -27,7 +27,7 @@ If the agent get a user's investment profile, including investment goal and risk
 
 ### Orchestration
 We want to create an orchestration framework to conduct how the agent works by mimicking how a real trading team operates in secondary stock markets.
-Specifically, we design a four-layer orchestration framework, including **User Profile processing**, **Stock Analysis**, **Investment Decision-Making** and **Investment Decision Execution**, every of which representing a real stage when trading team try to make their investment.
+Specifically, we design a four-layer orchestration framework, including **User Profile processing**, **Stock Analysis**, **Investment Decision-Making I** and **Investment Decision-Making II**, every of which representing a real stage when trading team try to make their investment.
 
 * **User Profile processing**: In this stage, the agent collects and processes the user's investment profile, which can be expressed as natural language or formated sheet. 
 If the natural language is provided, the agent will extract the key information by interacting with LLM. Eventually, all information will be transferred to a structured data and will be stored in short-term memory for reference in the following steps.
@@ -43,15 +43,37 @@ The assessment report for one stock contains the following aspects:
   * **Advantage Analysis**: The agent will identify the company's internal **competitive advantages** and **industry advantages**, such as market position, brand strength unique products or services and industry development space. This helps the agent assess the company's ability to maintain its market share and profitability over time.
   * **Risk Analysis**: The agent will identify the potential risks associated with the stock, including **internal risks** (e.g., financial health, management quality) and **external risks** (e.g., market competition, regulatory changes). This helps the agent understand the factors that could negatively impact the stock's performance.
 
-* **Investment Decision-Making**: In this stage, the agent will make investment decisions based on the user's investment profile and the stock analysis results stored in memory. 
+* **Investment Decision-Making I**: In this stage, the agent will make investment decisions based on the user's investment profile and the stock analysis results stored in memory. 
 The agent will utilize the LLM to process the information and generate **investment plans**. The agent will consider various factors, including the user's investment goals, risk tolerance, and financial condition, as well as the stock's valuation, advantages, and risks.
 An investment plan typically includes the following components:
   * **Stock Selection**: The agent will select a portfolio of stocks that align with the user's investment profile and the stock analysis results.
   * **Position Sizing**: The agent will determine the appropriate position size for each stock in the portfolio based on the user's financial condition and risk tolerance. This helps ensure that the user does not overexpose themselves to any single stock or sector.
   * **Entry and Exit Points**: The agent will identify optimal entry and exit points for each stock based on technical analysis and market conditions. This helps maximize potential returns while minimizing risks.
 
-* **Investment Decision Execution**: In this stage, the agent will execute the investment decisions made in the previous stage. The agent will decide the concrete trading plan for every stock emerging in the investment plan.
-Trading plan will be executed strictly by interacting with external trading APIs. The agent will monitor the market conditions and adjust the trading plan as necessary to ensure that it aligns with the user's investment profile and the stock analysis results.
+* **Investment Decision-Making II**: At this stage, the agent will formulate a more detailed trading strategy, enabling users to execute trades simply by following it. Specifically, the agent will determine concrete trading plans for each stock included in the investment scheme.
+To achieve users' expected returns, the trading plan must be implemented strictly. Meanwhile, the agent will continuously monitor market dynamics and make necessary adjustments to the trading plan, ensuring it remains aligned with both the user's investment profile and the results of stock analysis.
 An executed trading plan illustrates the following two rules:
   * **Buying-in Rules**: The agent will determine the specific conditions, including the related data indexes, under which to buy a stock and how much should be invested.
   * **Selling-out Rules**: The agent will determine the specific selling points when earnings or losses reach a certain threshold.
+
+### LLM
+we want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
+
+### Memory
+* **Long-Term Memory**:
+* **Short-Term Memory**:
+* 
+
+### Tools
+Tools are essential for enhancing the capabilities of the investment agent. We have integrated several tools to provide the agent with access to real-time data and functionalities that are crucial for making informed investment decisions. The tools we have integrated include:
+* **Real-Time Stock Data API**: This tool allows the agent to retrieve up-to-date stock price data, market trends, and other relevant financial information necessary for analysis and decision-making.
+* **Trading API**: This tool enables the agent to execute trades on behalf of the user, including buying and selling stocks based on the investment decisions made by the agent.
+* **Technical Analysis Tool**: This tool provides the agent with the ability to perform technical analysis on stock price data, including calculating various technical indicators and generating charts to visualize price trends.
+* **Fundamental Analysis Tool**: This tool allows the agent to analyze a company's financial statements and other fundamental data to assess its financial health and performance.
+* **Market News Analysis Tool**: This tool enables the agent to analyze market news and sentiment to identify potential factors that could impact stock prices.
+* **Risk Assessment Tool**: This tool helps the agent evaluate the risks associated with different stocks and investment strategies, allowing it to make recommendations that align with the user's risk tolerance.
+* **Portfolio Optimization Tool**: This tool assists the agent in optimizing the user's investment portfolio by analyzing asset allocation and diversification strategies to maximize returns while minimizing risks.
+* **Backtesting Tool**: This tool allows the agent to test investment strategies using historical data to evaluate their performance and effectiveness before implementing them in real-time trading.
+* **Performance Monitoring Tool**: This tool enables the agent to monitor the performance of the user's investment portfolio in real-time, providing insights and alerts on significant changes or events that may require attention.
+* **Compliance and Regulatory Tool**: This tool ensures that the agent's investment activities comply with relevant regulations and guidelines, helping to mitigate legal and regulatory risks.
+* **User Feedback Tool**: This tool allows the agent to collect and analyze user feedback on its performance and recommendations, enabling continuous improvement and adaptation to the user's preferences and needs.
