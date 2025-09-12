@@ -60,12 +60,42 @@ An executed trading plan illustrates the following two rules:
 We want the user to have freedom to choose the LLM they prefer. Therefore, we design the LLM component to be easily replaceable.
 
 ### Memory
-* **Long-Term Memory**:
-We use both relational database and vector database to store different types of information.
-  * The relational database is used to store stock analysis results, which will be kept for several days. This allows for efficient querying and retrieval of specific information when needed.
-  * The vector database is used to store unstructured data, such as market news articles and stock assessment reports. This allows for efficient similarity search and retrieval of relevant information based on the content of the documents.
-* **Short-Term Memory**:
-We use a k-v database to store the user's investment profile and other relevant context information that needs to be accessed quickly during the interaction with the agent. This allows for efficient retrieval of information and ensures that the agent can respond to user queries in a timely manner.
+
+
+The memory module is designed to support both **long-term knowledge retention** and **short-term contextual awareness**, enabling the investment agent to make personalized and context-aware decisions.  
+
+### Long-Term Memory  
+We adopt a hybrid storage approach:  
+
+- **Relational Database**  
+  Stores structured stock analysis results (e.g., valuation, risk, recommendations).  
+  Data is updated daily and kept for several days, supporting historical queries and validation.  
+
+- **Vector Database**  
+  Stores unstructured documents (e.g., market news, analyst reports).  
+  Texts are transformed into vector embeddings to enable semantic similarity search, ensuring the agent can retrieve relevant information beyond keyword matching.  
+
+This design allows efficient retrieval of both structured financial metrics and context-rich textual information.  
+
+### Short-Term Memory  
+We use a **key-value database** to store:  
+
+- **User Investment Profile** (goals, risk tolerance, financial condition).  
+- **Session Context** (unanswered questions, workflow progress, last executed step).  
+
+STM ensures that the agent’s recommendations are always aligned with user objectives while maintaining a smooth, stateful interaction.  
+Data is session-based and refreshed frequently to avoid stale context.  
+
+### Workflow  
+1. **Retrieval**: Load user profile (STM) + relevant stock data (LTM).  
+2. **Reasoning**: LLM integrates memory outputs with user queries.  
+3. **Update**: STM updated per interaction, LTM updated daily/continuously.  
+
+### Benefits  
+- **Efficiency**: Fast access to user-specific context.  
+- **Scalability**: Hybrid design supports structured and unstructured data.  
+- **Personalization**: Tailored investment advice through STM.  
+- **Robustness**: Clear separation of short- and long-term memory.  
 
 ### Tools
 Tools are essential for enhancing the capabilities of the investment agent. We have integrated several tools to provide the agent with access to real-time data and functionalities that are crucial for making informed investment decisions. The tools we have integrated include:
