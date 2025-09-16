@@ -1,33 +1,48 @@
-from langchain.memory import ConversationBufferMemory, VectorStoreRetrieverMemory
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
+from abc import ABC, abstractmethod
 
-# 短期记忆：会话缓冲区
-def get_stm():
-    return ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+# MemoryMessage 是所有记忆消息的抽象基类。
+# 其子类可用于表示存储在 MySQL、Redis、向量数据库等不同后端中的一条数据。
+# 通过继承该类，可以统一管理和操作各种类型的记忆数据。
+class MemoryMessage(ABC):
+    pass
 
-# 长期记忆：向量数据库（FAISS）
-def get_ltm():
-    embedding = OpenAIEmbeddings()
-    vectorstore = FAISS(embedding_function=embedding)
-    return VectorStoreRetrieverMemory(vectorstore=vectorstore)
-
-class MemoryManager:
-    def __init__(self):
-        self.stm = get_stm()
-        self.ltm = get_ltm()
-
-    def save_stm(self, key, value):
-        # 可扩展为存储到 ConversationBufferMemory
-        setattr(self.stm, key, value)
-
-    def get_stm(self, key):
-        return getattr(self.stm, key, None)
-
-    def save_ltm(self, stock, report):
-        # 可扩展为存储到 FAISS/SQL
+# MemoryManager 是记忆管理的抽象基类，定义了通用的记忆操作接口。
+# 子类可实现具体的存储和检索逻辑，支持多种后端（如数据库、缓存、向量存储等）。
+class MemoryManager(ABC):
+    @abstractmethod
+    def get_memory_by_key(self, key: str) -> MemoryMessage:
+        """
+        抽象方法：根据 key 获取对应的 memory。
+        子类需实现具体的检索逻辑。
+        :param key: memory 的唯一标识
+        :return: MemoryMessage 实例，代表一条记忆数据
+        """
         pass
 
-    def get_ltm(self, stock):
-        # 可扩展为从 FAISS/SQL 检索
+    @abstractmethod
+    def get_memories_by_keys(self, key: list) -> list[MemoryMessage]:
+        """
+        抽象方法：根据 keys 获取对应的 memories。
+        子类需实现具体的检索逻辑。
+        :param key: memory 唯一标识列表
+        :return: MemoryMessage 实例列表
+        """
+        pass
+
+    @abstractmethod
+    def put_memory_by_key(self, key: str):
+        """
+        抽象方法：根据 key 存储对应的 memory。
+        子类需实现具体的存储逻辑。
+        :param key: memory 的唯一标识
+        """
+        pass
+
+    @abstractmethod
+    def put_memories_by_keys(self, key: list):
+        """
+        抽象方法：根据 key 存储对应的 memory。
+        子类需实现具体的存储逻辑。
+        :param key: memory 唯一标识列表
+        """
         pass
