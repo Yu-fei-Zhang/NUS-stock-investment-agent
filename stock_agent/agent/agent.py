@@ -6,7 +6,6 @@ from typing import Optional, Any
 
 import search_tool
 from langchain.agents import initialize_agent, AgentType, create_tool_calling_agent, ConversationalChatAgent
-from langchain.agents.conversational.output_parser import ConvoOutputParser
 from langchain.memory import ConversationBufferMemory
 from langchain_community.tools import TavilySearchResults
 from langchain_core.output_parsers import BaseOutputParser
@@ -66,18 +65,6 @@ class StockAgent(ConversationalChatAgent, ABC):
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ]
         return ChatPromptTemplate(input_variables=input_variables, messages=messages)
-
-    @classmethod
-    def _get_default_output_parser(cls, **kwargs: Any) -> AgentOutputParser:
-        return ConvoOutputParser(**kwargs)
-
-    @property
-    def observation_prefix(self) -> str:
-        """Prefix to append the observation with."""
-
-    @property
-    def llm_prefix(self) -> str:
-        """Prefix to append the LLM call with."""
 
 
 
