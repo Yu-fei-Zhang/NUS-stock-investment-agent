@@ -7,6 +7,7 @@ from langchain_core.tools import StructuredTool
 # tools定义示例
 def search_function(query: str):
     return "LangChain"
+
 search1 = StructuredTool.from_function(
     func=search_function,
     name="Search",

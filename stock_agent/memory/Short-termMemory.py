@@ -2,7 +2,6 @@ import warnings
 from abc import ABC
 from typing import Optional, Any
 
-from langchain.memory.chat_memory import BaseChatMemory
 from langchain.memory.utils import get_prompt_input_key
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_core.memory import BaseMemory
@@ -83,7 +82,7 @@ class RedisBaseChatMemory(BaseMemory, ABC):
         await self.chat_memory.aclear()
 
 
-class RedisChatMemory(BaseChatMemory):
+class RedisChatMemory(RedisBaseChatMemory):
     """
     """
 
