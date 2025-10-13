@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.memory import ConversationBufferMemory
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 

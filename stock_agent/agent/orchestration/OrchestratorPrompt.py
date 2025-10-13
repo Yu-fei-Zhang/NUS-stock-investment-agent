@@ -7,7 +7,6 @@ class OrchestrationPrompt:
         "When generating trading plans or providing trading suggestions, you must follow four sequential steps while maintaining strict adherence to the original content without adding new information."
     )
 
-    # 优化引号转义与格式，避免编辑器误识别为SQL
     STAGE1_PROMPT = (
         "Start with User Profile Processing, where your core responsibility is to systematically collect, verify, and organize the user's investment profile as the foundational step for generating accurate, personalized trading plans. "
         "This involves interacting with the user to extract key information, proactively following up on missing details, and finally showing the generated profile for user confirmation. "
