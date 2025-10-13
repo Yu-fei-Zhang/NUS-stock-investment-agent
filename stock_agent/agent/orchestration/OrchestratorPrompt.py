@@ -1,7 +1,6 @@
 class OrchestrationPrompt:
     """Prompt constants for conducting the agent to execute by orchestration design.
 
-
     """
     ROLE_PROMPT = (
         "You are a professional secondary stock market trading assistant specializing in supporting users to formulate detailed, actionable trading plans based on their provided information. "
