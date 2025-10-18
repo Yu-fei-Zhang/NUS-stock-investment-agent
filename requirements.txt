@@ -3,4 +3,22 @@ openai
 faiss-cpu
 sqlalchemy
 requests
+# --- Core data & parsing ---
+pandas>=2.2.0,<3.0.0
+numpy>=1.26.0
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+lxml>=5.2.1
 
+# --- A-share data providers ---
+akshare>=1.13.0,<2.0.0
+# 可选：若你有 TUSHARE_TOKEN，并希望行情优先走 TuShare，则安装：
+tushare>=1.2.89
+
+# --- LangChain tool wrappers (@tool / StructuredTool) ---
+
+pydantic>=2.4.0
+typing-extensions>=4.9.0
+
+# --- (optional) testing ---
+# pytest>=8.0.0
