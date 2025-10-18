@@ -1,3 +1,12 @@
+from dataclasses import Field
+from typing import Type, Optional
+
+from langchain_community.utilities import GoogleBooksAPIWrapper
+from langchain_core.callbacks import CallbackManagerForToolRun
+from langchain_core.tools import BaseTool
+from openai import BaseModel
+
+
 class GoogleBooksQueryInput(BaseModel):
     """Input for the GoogleBooksQuery tool."""
 
