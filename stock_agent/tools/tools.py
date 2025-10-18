@@ -1,19 +1,27 @@
-from langchain_core.tools import StructuredTool
+class GoogleBooksQueryInput(BaseModel):
+    """Input for the GoogleBooksQuery tool."""
+
+    query: str = Field(description="query to look up on google books")
 
 
-# Runnable --> BaseTool --> StructuredTool, Tool
-#                       --> Custom Tool Classes
+class GoogleBooksQueryRun(BaseTool):
+    """Tool that searches the Google Books API."""
 
-# tools定义示例
-def search_function(query: str):
-    return "LangChain"
+    name: str = "GoogleBooks"
+    description: str = (
+        "A wrapper around Google Books. "
+        "Useful for when you need to answer general inquiries about "
+        "books of certain topics and generate recommendation based "
+        "off of key words"
+        "Input should be a query string"
+    )
+    api_wrapper: GoogleBooksAPIWrapper
+    args_schema: Type[BaseModel] = GoogleBooksQueryInput
 
-search1 = StructuredTool.from_function(
-    func=search_function,
-    name="Search",
-    description="useful for when you need to answer questions about current events"
-)
-
-
-
-
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Use the Google Books tool."""
+        return self.api_wrapper.run(query)
