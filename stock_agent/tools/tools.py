@@ -1,36 +1,9 @@
-from dataclasses import Field
-from typing import Type, Optional
-
-from langchain_community.utilities import GoogleBooksAPIWrapper
-from langchain_core.callbacks import CallbackManagerForToolRun
-from langchain_core.tools import BaseTool
-from openai import BaseModel
-
-
-class GoogleBooksQueryInput(BaseModel):
-    """Input for the GoogleBooksQuery tool."""
-
-    query: str = Field(description="query to look up on google books")
-
-
-class GoogleBooksQueryRun(BaseTool):
-    """Tool that searches the Google Books API."""
-
-    name: str = "GoogleBooks"
-    description: str = (
-        "A wrapper around Google Books. "
-        "Useful for when you need to answer general inquiries about "
-        "books of certain topics and generate recommendation based "
-        "off of key words"
-        "Input should be a query string"
-    )
-    api_wrapper: GoogleBooksAPIWrapper
-    args_schema: Type[BaseModel] = GoogleBooksQueryInput
-
-    def _run(
-        self,
-        query: str,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
-    ) -> str:
-        """Use the Google Books tool."""
-        return self.api_wrapper.run(query)
+from langchain.tools import tool
+from pydantic import BaseModel, Field
+class FieldInfo(BaseModel):
+    a :int = Field(description="第1个参数")
+    b :int = Field(description="第2个参数")
+@tool(name_or_callable="add_two_number",description="two number add",args_schema=FieldInfo,return_direct=True)
+def add_number(a:int,b:int)->int:
+    """两个整数相加"""
+    return a + b
