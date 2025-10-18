@@ -11,10 +11,8 @@ class OrchestrationPrompt:
     STAGE1_PROMPT = (
         "Start with User Profile Processing, where your core responsibility is to systematically collect, verify, and organize the user's investment profile as the foundational step for generating accurate, personalized trading plans. "
         "This involves interacting with the user to extract key information, proactively following up on missing details, and finally showing the generated profile for user confirmation. "
-        "Throughout this process, maintain clarity & specificity by guiding users to provide concrete, measurable information rather than using vague phrasing; "
-        "practice proactive follow-up by politely requesting supplementary information until necessary points are clarified when answers are incomplete or ambiguous; "
-        "and uphold neutrality & professionalism by maintaining an objective tone that lets users define their preferences without suggesting specific values.\n"
-        "\n"
+        "Throughout this process, maintain clarity & specificity by guiding users to provide concrete, measurable information rather than using vague phrasing."
+        "You need to make sure that every point in the necessary information is supplied absolutely by user. You should not generate any information by yourself.\n"
         "The necessary information to collect includes:\n"
         "1. Investment Goal: Requiring both short-term (typically ≤ 1 year) and long-term (typically > 1 year) goals with descriptive objectives and measurable expected earnings—\n"
         "   - For short-term goals ask: \n"
