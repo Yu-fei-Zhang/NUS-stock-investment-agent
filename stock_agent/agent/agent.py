@@ -1,106 +1,47 @@
 from __future__ import annotations
 
-from abc import ABC
-from collections.abc import Sequence
-from typing import Optional, Any
-
-import search_tool
-from langchain.agents import initialize_agent, AgentType, create_tool_calling_agent, ConversationalChatAgent
-from langchain.memory import ConversationBufferMemory
-from langchain_community.tools import TavilySearchResults
-from langchain_core.output_parsers import BaseOutputParser
-from langchain_core.prompts import BasePromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, \
-    MessagesPlaceholder, HumanMessagePromptTemplate
-from langchain_core.tools import BaseTool
-
-from langchain.agents.agent import AgentOutputParser, AgentExecutor
-from langchain.agents.conversational.prompt import PREFIX, SUFFIX
+from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.chains import LLMChain
+from langchain.memory import ConversationBufferMemory
 from langchain_openai import ChatOpenAI
 
-
-class StockAgent(ConversationalChatAgent, ABC):
-
-    @classmethod
-    def create_prompt(
-            cls,
-            tools: Sequence[BaseTool],
-            system_message: str = PREFIX,
-            human_message: str = SUFFIX,
-            input_variables: Optional[list[str]] = None,
-            output_parser: Optional[BaseOutputParser] = None,
-    ) -> BasePromptTemplate:
-        """Create a prompt for the agent.
-
-        Args:
-            tools: The tools to use.
-            system_message: The system message to use.
-                Defaults to the PREFIX.
-            human_message: The human message to use.
-                Defaults to the SUFFIX.
-            input_variables: The input variables to use. Defaults to None.
-            output_parser: The output parser to use. Defaults to None.
-
-        Returns:
-            A PromptTemplate.
-        """
-        tool_strings = "\n".join(
-            [f"> {tool.name}: {tool.description}" for tool in tools],
-        )
-        tool_names = ", ".join([tool.name for tool in tools])
-        _output_parser = output_parser or cls._get_default_output_parser()
-        format_instructions = human_message.format(
-            format_instructions=_output_parser.get_format_instructions(),
-        )
-        final_prompt = format_instructions.format(
-            tool_names=tool_names,
-            tools=tool_strings,
-        )
-        if input_variables is None:
-            input_variables = ["input", "chat_history", "agent_scratchpad"]
-        messages = [
-            SystemMessagePromptTemplate.from_template(system_message),
-            MessagesPlaceholder(variable_name="chat_history"),
-            HumanMessagePromptTemplate.from_template(final_prompt),
-            MessagesPlaceholder(variable_name="agent_scratchpad"),
-        ]
-        return ChatPromptTemplate(input_variables=input_variables, messages=messages)
-
-
+from stock_agent.agent.orchestration.OrchestratorPrompt import OrchestrationPrompt
 
 llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    temperature=0
+    temperature=0.9,
+    api_key="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"
 )
 memory = ConversationBufferMemory(
     memory_key="chat_history",
     return_messages=True
 )
-agent_executor = initialize_agent(
-    tools=[search_tool],
-    llm=llm,
-    agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
-    memory=memory,
-    verbose=True
-)
-query1="北京明天的天气怎么样？"
-result1 = agent_executor.invoke(query1)
-print(f"查询结果: {result1}")
-query2="上海呢"
-result2=agent_executor.invoke(query2)
-print(f"分析结果: {result2}")
+tools = []
+agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
+                                                   + OrchestrationPrompt.STAGE2_PROMPT + OrchestrationPrompt.STAGE3_PROMPT + OrchestrationPrompt.STAGE4_PROMPT)
+agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=False)
 
-# 自定义agent提示词模板
-search = TavilySearchResults(max_results=2)
-tools = [search]
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "你是一个有用的助手，可以回答问题并使用工具。"),
-    ("placeholder", "{chat_history}"),
-    ("human", "{input}"),
-    ("placeholder", "{agent_scratchpad}")
-])
-# 7.创建Agent对象
-agent = create_tool_calling_agent(llm, tools, prompt)
-# 8.创建AgentExecutor执行器对象(通过源码可知，memory参数声明在AgentExecutor父类中)
-agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=True)
+print("✅ 股票投资咨询助手已启动！输入 '退出' 可结束对话。")
+while True:
+    # 2.1 获取用户当前输入
+    user_input = input("\n你：")
+
+    # 2.2 终止逻辑：用户输入“退出”时结束对话
+    if user_input.strip().lower() in ["退出", "结束", "bye"]:
+        print("助手：感谢咨询！投资有风险，入市需谨慎，再见～")
+        break
+
+    # 2.3 调用 Agent 执行器：传入当前输入 + 自动读取历史记忆
+    try:
+        response = agent_executor.invoke(
+            input={"input": user_input},  # 每次仅需传入当前输入，memory 会自动注入历史
+            return_only_outputs=True  # 仅返回 Agent 的最终响应（简化输出）
+        )
+
+        # 2.4 打印 Agent 响应
+        print(f"助手：{response['output']}")
+
+    # 2.5 异常处理（如 API 调用失败、密钥错误等）
+    except Exception as e:
+        print(f"❌ 对话出错：{str(e)[:100]}（请检查 API 密钥或网络）")
+        continue
 
