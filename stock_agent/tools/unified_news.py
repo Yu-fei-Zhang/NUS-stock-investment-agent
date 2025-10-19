@@ -1,6 +1,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # File: stock_agent/tools/unified_news.py
 # ──────────────────────────────────────────────────────────────────────────────
+from __future__ import annotations
+
 from typing import Optional, List, Dict
 import typing as T
 import math
@@ -352,23 +354,78 @@ class UnifiedNewsTool:
         return df.head(limit)
 
 
-# 便于 LLM/外部直接调用的 JSON Facade
+# =========================
+# 单字典参数的便捷入口（兼容旧调用）
+# =========================
 _DEF_NEWS: Optional[UnifiedNewsTool] = None
 
+def _coerce_news_params(
+    params: Optional[T.Union[dict, str]] = None,
+    **kwargs,
+) -> dict:
+    """
+    统一解析参数为 dict：
+    - params 为 dict：直接使用
+    - params 为 str：视为 symbol_or_name
+    - 兼容旧式 kwargs：symbol_or_name=..., limit=..., since=..., until=...
+    字段：
+      symbol_or_name: str       # 必填
+      limit: int = 50
+      since: "YYYY-MM-DD" | "YYYYMMDD" | None
+      until: "YYYY-MM-DD" | "YYYYMMDD" | None
+    """
+    if params is None:
+        params = {}
+    if isinstance(params, str):
+        params = {"symbol_or_name": params}
+    if not isinstance(params, dict):
+        raise ToolError("params must be a dict or a symbol/name string")
+
+    merged = {**params, **kwargs}
+    q = merged.get("symbol_or_name") or merged.get("query") or merged.get("symbol") or merged.get("name")
+    if not q or not str(q).strip():
+        raise ToolError("`symbol_or_name` is required in params dict")
+
+    limit = int(merged.get("limit", 50))
+    since = merged.get("since")
+    until = merged.get("until")
+
+    limit = max(1, min(limit, 200))  # 安全上限
+
+    return {"symbol_or_name": str(q).strip(), "limit": limit, "since": since, "until": until}
+
 def get_company_news_united(
-    symbol_or_name: str,
-    limit: int = 50,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
+    params: Optional[T.Union[dict, str]] = None,
+    **kwargs,
 ) -> Dict[str, T.Any]:
+    """
+    单参数（dict）入口 —— 适配只能传一个参数给 Agent 的场景。
+
+    参数字典 schema：
+    {
+      "symbol_or_name": "600519" | "贵州茅台",   # 必填
+      "limit": 50,                               # 选填，1~200
+      "since": "YYYY-MM-DD" | "YYYYMMDD",        # 选填
+      "until": "YYYY-MM-DD" | "YYYYMMDD"         # 选填
+    }
+
+    兼容旧式调用：get_company_news_united("600519", limit=40, since="2025-01-01")
+    """
+    p = _coerce_news_params(params, **kwargs)
+
     global _DEF_NEWS
     if _DEF_NEWS is None:
         _DEF_NEWS = UnifiedNewsTool()
 
-    df = _DEF_NEWS.get_company_news(symbol_or_name, limit=limit, since=since, until=until)
+    df = _DEF_NEWS.get_company_news(
+        p["symbol_or_name"],
+        limit=p["limit"],
+        since=p["since"],
+        until=p["until"],
+    )
 
     payload: Dict[str, T.Any] = {
-        "query": symbol_or_name,
+        "query": p["symbol_or_name"],
         "rows": [],
         "vendor_meta": {"vendor": "eastmoney+sina+akshare", "cached": False},
     }
@@ -385,8 +442,3 @@ def get_company_news_united(
     ].to_dict(orient="records")
 
     return payload
-
-
-
-
-

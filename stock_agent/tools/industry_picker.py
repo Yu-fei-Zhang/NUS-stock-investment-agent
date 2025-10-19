@@ -1,8 +1,11 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # File: stock_agent/tools/industry_picker.py
+# Random K industries (from a fixed Eastmoney list) -> pick top N per industry
+# Source: Eastmoney via AkShare
 # ──────────────────────────────────────────────────────────────────────────────
 from __future__ import annotations
 
+import random
 import typing as T
 import pandas as pd
 
@@ -13,9 +16,63 @@ from stock_agent.tools.common import (
     with_retries,
 )
 
+# ----------------------------
+# 固定的东财行业清单（86 个）
+# ----------------------------
+EASTMONEY_FIXED_INDUSTRIES: list[dict] = [
+    {'industry': '贵金属', 'code': 'BK0732'}, {'industry': '燃气', 'code': 'BK1028'},
+    {'industry': '航空机场', 'code': 'BK0420'}, {'industry': '航运港口', 'code': 'BK0450'},
+    {'industry': '银行', 'code': 'BK0475'}, {'industry': '铁路公路', 'code': 'BK0421'},
+    {'industry': '煤炭行业', 'code': 'BK0437'}, {'industry': '石油行业', 'code': 'BK0464'},
+    {'industry': '钢铁行业', 'code': 'BK0479'}, {'industry': '珠宝首饰', 'code': 'BK0734'},
+    {'industry': '采掘行业', 'code': 'BK1017'}, {'industry': '公用事业', 'code': 'BK0427'},
+    {'industry': '工程咨询服务', 'code': 'BK0726'}, {'industry': '纺织服装', 'code': 'BK0436'},
+    {'industry': '农牧饲渔', 'code': 'BK0433'}, {'industry': '医药商业', 'code': 'BK1042'},
+    {'industry': '中药', 'code': 'BK1040'}, {'industry': '农药兽药', 'code': 'BK0730'},
+    {'industry': '商业百货', 'code': 'BK0482'}, {'industry': '化肥行业', 'code': 'BK0731'},
+    {'industry': '家用轻工', 'code': 'BK0440'}, {'industry': '水泥建材', 'code': 'BK0424'},
+    {'industry': '房地产开发', 'code': 'BK0451'}, {'industry': '装修装饰', 'code': 'BK0725'},
+    {'industry': '食品饮料', 'code': 'BK0438'}, {'industry': '旅游酒店', 'code': 'BK0485'},
+    {'industry': '物流行业', 'code': 'BK0422'}, {'industry': '化学制药', 'code': 'BK0465'},
+    {'industry': '文化传媒', 'code': 'BK0486'}, {'industry': '电力行业', 'code': 'BK0428'},
+    {'industry': '工程建设', 'code': 'BK0425'}, {'industry': '生物制品', 'code': 'BK1044'},
+    {'industry': '多元金融', 'code': 'BK0738'}, {'industry': '综合行业', 'code': 'BK0539'},
+    {'行业': '环保行业', 'code': 'BK0728'}, {'industry': '化学原料', 'code': 'BK1019'},
+    {'industry': '酿酒行业', 'code': 'BK0477'}, {'industry': '美容护理', 'code': 'BK1035'},
+    {'industry': '装修建材', 'code': 'BK0476'}, {'industry': '贸易行业', 'code': 'BK0484'},
+    {'industry': '汽车服务', 'code': 'BK1016'}, {'industry': '塑料制品', 'code': 'BK0454'},
+    {'industry': '家电行业', 'code': 'BK0456'}, {'industry': '造纸印刷', 'code': 'BK0470'},
+    {'industry': '化学制品', 'code': 'BK0538'}, {'industry': '医疗器械', 'code': 'BK1041'},
+    {'industry': '通信服务', 'code': 'BK0736'}, {'industry': '橡胶制品', 'code': 'BK1018'},
+    {'industry': '专业服务', 'code': 'BK1043'}, {'industry': '房地产服务', 'code': 'BK1045'},
+    {'industry': '证券', 'code': 'BK0473'}, {'industry': '医疗服务', 'code': 'BK0727'},
+    {'industry': '保险', 'code': 'BK0474'}, {'industry': '包装材料', 'code': 'BK0733'},
+    {'industry': '仪器仪表', 'code': 'BK0458'}, {'industry': '交运设备', 'code': 'BK0429'},
+    {'industry': '有色金属', 'code': 'BK0478'}, {'industry': '光学光电子', 'code': 'BK1038'},
+    {'industry': '工程机械', 'code': 'BK0739'}, {'industry': '计算机设备', 'code': 'BK0735'},
+    {'industry': '玻璃玻纤', 'code': 'BK0546'}, {'industry': '教育', 'code': 'BK0740'},
+    {'industry': '化纤行业', 'code': 'BK0471'}, {'industry': '游戏', 'code': 'BK1046'},
+    {'industry': '互联网服务', 'code': 'BK0447'}, {'industry': '软件开发', 'code': 'BK0737'},
+    {'industry': '专用设备', 'code': 'BK0910'}, {'industry': '能源金属', 'code': 'BK1015'},  # 修正键名
+    {'industry': '船舶制造', 'code': 'BK0729'}, {'industry': '航天航空', 'code': 'BK0480'},
+    {'industry': '通用设备', 'code': 'BK0545'}, {'industry': '通信设备', 'code': 'BK0448'},
+    {'industry': '汽车零部件', 'code': 'BK0481'}, {'industry': '小金属', 'code': 'BK1027'},
+    {'industry': '汽车整车', 'code': 'BK1029'}, {'industry': '非金属材料', 'code': 'BK1020'},
+    {'industry': '电机', 'code': 'BK1030'}, {'industry': '电子化学品', 'code': 'BK1039'},
+    {'industry': '电池', 'code': 'BK1033'}, {'industry': '消费电子', 'code': 'BK1037'},
+    {'industry': '电子元件', 'code': 'BK0459'}, {'industry': '风电设备', 'code': 'BK1032'},
+    {'industry': '半导体', 'code': 'BK1036'}, {'industry': '光伏设备', 'code': 'BK1031'},
+    {'industry': '电网设备', 'code': 'BK0457'}, {'industry': '电源设备', 'code': 'BK1034'},
+]
+# 修正上面“能源金属”那一项的键名误填
+for d in EASTMONEY_FIXED_INDUSTRIES:
+    if "industry" not in d and "行业" in d:
+        d["industry"] = d.pop("行业")
 
+# ----------------------------
+# 小工具
+# ----------------------------
 def _rename_like(df: pd.DataFrame, mapping: T.Dict[T.Union[str, tuple], str]) -> pd.DataFrame:
-    """把多种可能的列名统一重命名为标准列名"""
     rename = {}
     for srcs, dst in mapping.items():
         src_list = (srcs,) if isinstance(srcs, str) else list(srcs)
@@ -27,173 +84,267 @@ def _rename_like(df: pd.DataFrame, mapping: T.Dict[T.Union[str, tuple], str]) ->
         df = df.rename(columns=rename)
     return df
 
-
 def _ensure_code(df: pd.DataFrame) -> pd.DataFrame:
     if "code" not in df.columns:
         raise ToolError("结果缺少代码列，请检查 akshare 接口变更")
-    df["code"] = df["code"].astype(str).str.zfill(6)
+    df["code"] = df["code"].astype(str).str.extract(r"(\d{6})", expand=False).fillna("")
+    df = df[df["code"].str.len() == 6].copy()
     return df
 
+def _to_pct(x) -> float | None:
+    try:
+        s = str(x).replace("%", "")
+        return float(s)
+    except Exception:
+        return None
 
-class IndustryCatalogTool:
+# ----------------------------
+# 主工具
+# ----------------------------
+class IndustryRandomTopPicker:
     """
-    行业目录工具：
-    1) 列出东财（AkShare）里**全部行业关键字**（行业名 + 行业代码）
-    2) 用户从清单里选中“行业名”后，精确获取该行业的成分股（不做模糊）
+    逻辑：
+      1) 从固定 86 个东财行业中随机抽取 k 个（默认 5）
+      2) 每个行业用 akshare 的 stock_board_industry_cons_em(symbol=行业名) 拉成分
+      3) 以当日涨跌幅 pct_chg 作为“近期表现”度量，**每行业选择前 n_per_industry 支**
+      4) 合并输出，默认总数 = k * n_per_industry（默认 5*5=25）
     """
 
     def __init__(self, rate_limit: RateLimiter | None = None):
-        self.rl = rate_limit or RateLimiter(rate=3.0, capacity=6)
+        # 推荐：1.0 rps，桶 3，降低被限频概率
+        self.rl = rate_limit or RateLimiter(rate=1.0, capacity=3)
         self._ak = None
 
-    # ---------- lazy deps ----------
     def _ensure_ak(self):
         if self._ak is None:
             self._ak = _lazy_import("akshare")
         return self._ak
 
-    # ---------- public APIs ----------
-    def list_industry_keywords(self) -> pd.DataFrame:
-        """
-        返回东财行业清单（DataFrame）：
-        columns: industry, code
-        """
+    # --- 抽行业 ---
+    def random_pick_industries(self, k: int = 5, seed: int | None = None) -> pd.DataFrame:
+        k = max(1, min(int(k), len(EASTMONEY_FIXED_INDUSTRIES)))
+        if seed is None:
+            # 使用系统熵，避免每次都一样
+            rnd = random.SystemRandom()
+            picked = rnd.sample(EASTMONEY_FIXED_INDUSTRIES, k)
+            used_seed = None
+        else:
+            rnd = random.Random(seed)
+            pool = EASTMONEY_FIXED_INDUSTRIES.copy()
+            rnd.shuffle(pool)
+            picked = pool[:k]
+            used_seed = seed
+        df = pd.DataFrame(picked)[["industry", "code"]].copy()
+        df.attrs["vendor_meta"] = {"vendor": "eastmoney", "picked": k, "seed": used_seed}
+        return df
+
+    # --- 行业成分（东财）---
+    def _fetch_industry_cons(self, industry_name: str) -> pd.DataFrame:
         ak = self._ensure_ak()
         self.rl.acquire()
-        try:
-            df = with_retries(ak.stock_board_industry_name_em)()
-        except Exception as e:
-            raise ToolError(f"获取东财行业清单失败: {e}")
-
-        if df is None or df.empty:
-            raise ToolError("东财行业清单为空")
-
-        df = _rename_like(
-            df,
-            {("板块名称", "行业名称", "名称", "name", "板块"): "industry",
-             ("代码", "板块代码", "code"): "code"}
+        df = with_retries(ak.stock_board_industry_cons_em, tries=6, delay=0.6, backoff=1.8)(
+            symbol=industry_name
         )
-        if "industry" not in df.columns:
-            raise ToolError("无法识别行业名称列，请检查 akshare 接口变更")
-        df["industry"] = df["industry"].astype(str)
-        # 仅保留两列，稳定输出
-        out = df[["industry", "code"]].copy()
-        # 附带元信息
-        out.attrs["vendor_meta"] = {"vendor": "eastmoney", "count": len(out)}
-        return out
+        if df is None or df.empty:
+            raise ToolError(f"行业[{industry_name}]暂无成分股或接口返回为空")
+        df = _rename_like(df, {
+            ("代码", "code"): "code",
+            ("名称", "name"): "name",
+            ("涨跌幅", "涨跌幅(%)", "pct_chg", "change_percent"): "pct_chg",
+            ("总市值", "总市值-亿", "总市值(元)", "总市值（元）", "market_cap", "总市值(万元)"): "total_mv",
+        })
+        df = _ensure_code(df)
+        if "pct_chg" in df.columns:
+            df["pct_chg"] = df["pct_chg"].map(_to_pct)
+        return df
 
-    def get_constituents_by_exact_industry(
+    # --- 每行业取前 n 支 ---
+    def _pick_top_n_from_industry(
         self,
         industry_name: str,
-        limit: int = 30,
-        include_names: bool = False,
-        sort_by: str | None = "total_mv",
-        ascending: bool = False,
+        n: int = 5,
+        exclude_st: bool = True
+    ) -> pd.DataFrame | None:
+        try:
+            cons = self._fetch_industry_cons(industry_name)
+        except Exception:
+            return None
+        if exclude_st and "name" in cons.columns:
+            cons = cons[~cons["name"].astype(str).str.contains(r"ST|退", regex=True, na=False)]
+        # 排序：优先 pct_chg，其次 total_mv，最后任意
+        if "pct_chg" in cons.columns and cons["pct_chg"].notna().any():
+            cons = cons.sort_values("pct_chg", ascending=False, kind="mergesort")
+        elif "total_mv" in cons.columns and cons["total_mv"].notna().any():
+            cons = cons.sort_values("total_mv", ascending=False, kind="mergesort")
+        # 取前 n
+        take = max(1, int(n))
+        topn = cons.head(take).copy()
+        topn["industry"] = industry_name
+        topn["rank_in_industry"] = range(1, len(topn) + 1)
+        keep = ["code", "name", "industry", "rank_in_industry"]
+        topn = topn[[c for c in keep if c in topn.columns]]
+        return topn.reset_index(drop=True)
+
+    # --- 对外主功能：随机 K 行业，每行业取 N 支 ---
+    def get_random_top_sequence(
+        self,
+        k_industries: int = 5,
+        n_per_industry: int = 5,
+        seed: int | None = None,
+        include_names: bool = True,
+        exclude_st: bool = True,
+        hard_cap_total: int = 30,   # 安全上限，避免一次请求太多
     ) -> pd.DataFrame:
         """
-        精确按“行业名”获取成分股（不做模糊匹配）。
-        - industry_name 必须来自 list_industry_keywords() 的 industry 字段
-        - 返回列：["code"] 或 ["code","name"]（include_names=True）
+        返回 DataFrame：至少包含 ["code","industry"]，
+        若 include_names=True 则包含 "name"，还包含 "rank_in_industry"。
         """
-        # 先验证行业名确实存在于清单（避免拼写问题）
-        catalog = self.list_industry_keywords()
-        names = set(catalog["industry"].tolist())
-        if industry_name not in names:
-            # 给出提示：展示可选行业数量，不做模糊
-            raise ToolError(
-                f"未找到行业：{industry_name}。请先从 list_industry_keywords() 的清单中拷贝合法行业名。"
-            )
+        k_industries = max(1, min(int(k_industries), len(EASTMONEY_FIXED_INDUSTRIES)))
+        n_per_industry = max(1, int(n_per_industry))
 
-        ak = self._ensure_ak()
-        self.rl.acquire()
-        try:
-            df = with_retries(ak.stock_board_industry_cons_em)(symbol=industry_name)
-        except Exception as e:
-            raise ToolError(f"获取行业[{industry_name}]成分股失败: {e}")
+        # 目标总量
+        target_total = k_industries * n_per_industry
+        if hard_cap_total is not None and target_total > int(hard_cap_total):
+            # 若超过上限，优先缩减行业数，其次缩减每行业数量
+            k_industries = min(k_industries, int(hard_cap_total // n_per_industry) or 1)
+            target_total = k_industries * n_per_industry
 
-        if df is None or df.empty:
-            raise ToolError(f"行业[{industry_name}]暂无成分股")
+        # 先挑行业
+        picked = self.random_pick_industries(k=k_industries, seed=seed)
+        tried_names = set()
+        results: list[pd.DataFrame] = []
 
-        df = _rename_like(
-            df,
-            {
-                ("代码", "code"): "code",
-                ("名称", "name"): "name",
-                ("总市值", "总市值-亿", "总市值(元)", "总市值（元）", "market_cap", "总市值(万元)"): "total_mv",
-            },
-        )
-        df = _ensure_code(df)
+        # 先跑首批行业
+        for ind in picked["industry"].tolist():
+            tried_names.add(ind)
+            rows = self._pick_top_n_from_industry(industry_name=ind, n=n_per_industry, exclude_st=exclude_st)
+            if rows is not None and not rows.empty:
+                results.append(rows)
 
-        if sort_by and sort_by in df.columns:
-            df = df.sort_values(sort_by, ascending=ascending, kind="mergesort")
+        # 如个别行业失败，尝试从剩余行业补齐至 target_total
+        if sum(len(x) for x in results) < target_total:
+            remaining = [d["industry"] for d in EASTMONEY_FIXED_INDUSTRIES if d["industry"] not in tried_names]
+            rnd = random.SystemRandom() if seed is None else random.Random(seed + 1)
+            rnd.shuffle(remaining)
+            for ind in remaining:
+                rows = self._pick_top_n_from_industry(industry_name=ind, n=n_per_industry, exclude_st=exclude_st)
+                if rows is not None and not rows.empty:
+                    results.append(rows)
+                if sum(len(x) for x in results) >= target_total:
+                    break
 
-        keep_cols = ["code", "name"] if (include_names and "name" in df.columns) else ["code"]
-        out = df[keep_cols].head(int(limit)).reset_index(drop=True).copy()
+        if not results:
+            raise ToolError("未能从任何行业获取到成分股，请稍后重试或降低请求频率。")
+
+        out = pd.concat(results, ignore_index=True)
+        # 截断到总量上限
+        out = out.head(target_total).reset_index(drop=True)
+        if not include_names and "name" in out.columns:
+            out = out.drop(columns=["name"])
+
         out.attrs["vendor_meta"] = {
-            "vendor": "eastmoney_industry",
-            "industry": industry_name,
-            "limit": int(limit),
-            "sort_by": sort_by,
-            "ascending": ascending,
+            "vendor": "eastmoney",
+            "mode": "random_industries_topN",
+            "k_industries": k_industries,
+            "n_per_industry": n_per_industry,
+            "seed": seed,
+            "exclude_st": exclude_st,
+            "target_total": target_total,
+            "achieved": len(out),
         }
         return out
 
 
-# 便于 LLM/HTTP 直接使用的 JSON 封装
-_DEF_CATALOG: IndustryCatalogTool | None = None
+# 兼容导出（如果你项目其他地方从 tools 导入过 IndustryCatalogTool）
+IndustryCatalogTool = IndustryRandomTopPicker
 
+# ----------------------------
+# JSON 便捷封装（给 LLM / HTTP 使用）
+# 单字典参数入口（兼容旧参数形式）
+# ----------------------------
+_DEF_PICKER: IndustryRandomTopPicker | None = None
 
-def list_a_share_industry_keywords() -> T.Dict[str, T.Any]:
-    """
-    返回 JSON：
-    {
-      "source": "eastmoney",
-      "rows": [{"industry": "...", "code": "BKxxxx"}, ...],
-      "vendor_meta": {"vendor": "eastmoney", "count": N}
-    }
-    """
-    global _DEF_CATALOG
-    if _DEF_CATALOG is None:
-        _DEF_CATALOG = IndustryCatalogTool()
-
-    df = _DEF_CATALOG.list_industry_keywords()
-    meta = df.attrs.get("vendor_meta", {})
-    return {
-        "source": "eastmoney",
-        "rows": df.to_dict(orient="records"),
-        "vendor_meta": meta,
-    }
-
-
-def get_a_share_list_by_exact_industry(
-    industry_name: str,
-    limit: int = 30,
-    include_names: bool = False,
+def _coerce_picker_params(
+    params: T.Optional[T.Dict[str, T.Any]] = None,
+    **kwargs,
 ) -> T.Dict[str, T.Any]:
     """
-    精确行业名 → 成分股 JSON：
-    {
-      "industry": "<行业名>",
-      "codes": ["600519", "000001", ...],
-      "rows": [{"code":"600519","name":"贵州茅台"}, ...],  # include_names=True 时包含
-      "vendor_meta": {...}
-    }
+    统一把输入解析为 dict：
+    - params 为 dict：直接使用
+    - 兼容旧式 kwargs：limit_industries=..., per_industry=..., seed=..., include_names=..., exclude_st=..., hard_cap_total=...
+    字段：
+      limit_industries: int = 5
+      per_industry:     int = 5
+      seed:             int | None
+      include_names:    bool = True
+      exclude_st:       bool = True
+      hard_cap_total:   int = 30
     """
-    global _DEF_CATALOG
-    if _DEF_CATALOG is None:
-        _DEF_CATALOG = IndustryCatalogTool()
+    params = params or {}
+    if not isinstance(params, dict):
+        raise ToolError("params must be a dict")
 
-    df = _DEF_CATALOG.get_constituents_by_exact_industry(
-        industry_name=industry_name,
-        limit=limit,
-        include_names=include_names,
+    merged = {**params, **kwargs}
+    k = int(merged.get("limit_industries", 5))
+    n = int(merged.get("per_industry", 5))
+    seed = merged.get("seed", None)
+    include_names = bool(merged.get("include_names", True))
+    exclude_st = bool(merged.get("exclude_st", True))
+    hard_cap_total = merged.get("hard_cap_total", 30)
+    hard_cap_total = int(hard_cap_total) if hard_cap_total is not None else None
+
+    # 安全上限
+    if hard_cap_total is not None:
+        hard_cap_total = max(1, min(hard_cap_total, 200))
+
+    return {
+        "limit_industries": max(1, min(k, len(EASTMONEY_FIXED_INDUSTRIES))),
+        "per_industry": max(1, n),
+        "seed": seed,
+        "include_names": include_names,
+        "exclude_st": exclude_st,
+        "hard_cap_total": hard_cap_total,
+    }
+
+def get_random_a_share_sequence(
+    params: T.Optional[T.Dict[str, T.Any]] = None,
+    **kwargs,
+) -> T.Dict[str, T.Any]:
+    """
+    单参数（dict）入口 —— 适配只能传一个参数给 Agent 的场景。
+
+    参数字典 schema：
+    {
+      "limit_industries": 5,   # 从固定 86 个行业中随机抽取多少个行业
+      "per_industry": 5,       # 每个行业取多少支（当日涨幅优先）
+      "seed": null,            # 可选，固定随机种子；不传则每次不同
+      "include_names": true,   # 是否包含股票名称
+      "exclude_st": true,      # 是否剔除 ST/退市相关
+      "hard_cap_total": 30     # 安全上限；None 表示不设上限
+    }
+
+    仍兼容旧式：get_random_a_share_sequence(limit_industries=5, per_industry=5, ...)
+    """
+    p = _coerce_picker_params(params, **kwargs)
+
+    global _DEF_PICKER
+    if _DEF_PICKER is None:
+        _DEF_PICKER = IndustryRandomTopPicker()
+
+    picker = _DEF_PICKER
+    sel = picker.random_pick_industries(k=p["limit_industries"], seed=p["seed"])
+    df = picker.get_random_top_sequence(
+        k_industries=p["limit_industries"],
+        n_per_industry=p["per_industry"],
+        seed=p["seed"],
+        include_names=p["include_names"],
+        exclude_st=p["exclude_st"],
+        hard_cap_total=p["hard_cap_total"],
     )
     meta = df.attrs.get("vendor_meta", {})
-    payload: T.Dict[str, T.Any] = {
-        "industry": meta.get("industry", industry_name),
+    return {
+        "selected_industries": sel.to_dict(orient="records"),
+        "rows": df.to_dict(orient="records"),
         "codes": df["code"].tolist(),
         "vendor_meta": meta,
     }
-    if include_names and "name" in df.columns:
-        payload["rows"] = df.to_dict(orient="records")
-    return payload
