@@ -31,7 +31,8 @@ __all__ = [
     "get_daily_ohlcv",
     "get_technical_indicator",
     "get_company_news",
-    "get_market_news"
+    "get_market_news",
+    "alpha_vantage_client"
 ]
 
 
