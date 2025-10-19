@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 
+from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool
+
 sys.path.append("C:\\Users\\张喻飞\\PycharmProjects\\NUS-stock-investment-agent\\stock_agent\\tools")
 
 import random
@@ -32,7 +34,7 @@ memory = RedisChatMemory(
     return_messages=True,
     memory_key="chat_history"
 )
-tools = [alpha_vantage_search_stocks_tool, alpha_vantage_get_daily_ohlcv_tool, alpha_vantage_get_technical_indicator_tool, alpha_vantage_get_company_news_tool, alpha_vantage_get_market_news_tool]
+tools = [a_share_random_industry_picks_tool]
 agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
                                                    + OrchestrationPrompt.STAGE2_PROMPT + OrchestrationPrompt.STAGE3_PROMPT + OrchestrationPrompt.STAGE4_PROMPT)
 agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=False)

@@ -10,13 +10,10 @@ from langchain.tools import tool
 
 # 复用已导出的业务函数（请确保 alpha_vantage_client 路径可导入）
 from alpha_vantage_client import client
-from stock_agent.tools import (  # 假设函数从 alpha_vantage_client 直接导出
-    search_stocks,
-    get_daily_ohlcv,
-    get_technical_indicator,
-    get_company_news,
-    get_market_news
-)
+from stock_agent.tools.news_tools import get_market_news, get_company_news
+from stock_agent.tools.stock_data_tools import get_technical_indicator, get_daily_ohlcv
+from stock_agent.tools.stock_picker import search_stocks
+
 
 # =========================
 # 参数模型（含 description）
