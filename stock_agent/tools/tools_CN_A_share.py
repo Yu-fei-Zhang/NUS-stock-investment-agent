@@ -32,7 +32,7 @@ class MarketDataParams(BaseModel):
             "- `adj` (str, optional): One of 'qfq' (default), 'hfq', 'none'.\n"
             "- `prefer` (List[str], optional): Vendor priority, e.g. ['akshare','tushare'].\n"
             "- `tushare_token` (str, optional): TuShare token if not in env.\n\n"
-            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
             "{\n"
             '  "symbol": "600519.SH",\n'
             '  "start_date": "2025-01-01",\n'
@@ -55,7 +55,7 @@ class CompanyNewsParams(BaseModel):
             "- `limit` (int, optional, default 50): Max items to return (1–200).\n"
             "- `since` (str, optional): Start date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
             "- `until` (str, optional): End date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n\n"
-            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
             "{\n"
             '  "symbol_or_name": "600519",\n'
             '  "limit": 40,\n'
@@ -80,7 +80,7 @@ class RandomIndustryParams(BaseModel):
             "- `include_names` (bool, optional, default true): Include stock names along with codes.\n"
             "- `exclude_st` (bool, optional, default true): Exclude ST/“退” tagged stocks.\n"
             "- `hard_cap_total` (int|null, optional, default 30): Safety cap for total rows; set null to disable.\n\n"
-            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
             "{\n"
             '  "limit_industries": 5,\n'
             '  "per_industry": 5,\n'
