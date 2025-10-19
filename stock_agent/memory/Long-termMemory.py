@@ -6,7 +6,7 @@ from langchain_text_splitters import CharacterTextSplitter
 import os
 
 os.environ["OPENAI_API_KEY"] = "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"
-os.environ["OPENAI_BASE_URL"] = ""
+# os.environ["OPENAI_BASE_URL"] = ""
 
 def Init_Models() -> tuple[ChatOpenAI, OpenAIEmbeddings]:
     """
