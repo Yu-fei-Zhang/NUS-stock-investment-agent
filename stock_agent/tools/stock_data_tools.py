@@ -1,4 +1,4 @@
-from alpha_vantage_client import client
+from stock_agent.tools.alpha_vantage_client import client
 from datetime import datetime, timedelta
 
 def get_daily_ohlcv(symbol: str, days: int = 30) -> dict:
