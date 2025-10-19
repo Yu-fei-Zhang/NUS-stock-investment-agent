@@ -39,16 +39,24 @@ class AlphaVantageClient:
             raise ConnectionError(f"Request failed: {str(e)}")
 
 #Load the api from the env.txt
-def load_api_key_from_env_file(file_path=r"E:\Translator2\NUS-stock-investment-agent\env.txt"):
+def load_api_key_from_env_file(file_path=None):
+    import os
+    # 如果未指定路径，则自动向上一级目录查找 env.txt
+    if file_path is None:
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # 当前文件所在目录: .../tools
+        parent_dir = os.path.dirname(current_dir)  # 上一级目录: .../stock_agent
+        project_root = os.path.dirname(parent_dir)  # 再上一层: .../NUS-stock-investment-agent
+        file_path = os.path.join(project_root, "env.txt")  # 拼出路径
+
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"环境文件 {file_path} 不存在")
 
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line.startswith("ALPHA_VANTAGE_API_KEY="):
-                # 提取等号后的密钥部分
-                return line.split("=", 1)[1]  # 用split("=", 1)避免密钥中含等号的情况
+                return line.split("=", 1)[1]  # 提取密钥
+
     raise ValueError(f"在 {file_path} 中未找到 ALPHA_VANTAGE_API_KEY")
 
 
