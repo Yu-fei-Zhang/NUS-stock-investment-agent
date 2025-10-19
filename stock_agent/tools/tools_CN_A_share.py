@@ -23,13 +23,23 @@ class MarketDataParams(BaseModel):
     params: Dict[str, Any] = Field(
         ...,
         description=(
-            "Input as a JSON-like dict for unified A-share daily OHLCV:\n"
-            "- **symbol** (str, required): A-share ticker. Accepts '600519', '600519.SH', 'sh600519', etc.\n"
-            "- **start_date** (str, optional): Start date, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
-            "- **end_date** (str, optional): End date, 'YYYY-MM-DD' or 'YYYYMMDD' (capped at today).\n"
-            "- **adj** (str, optional): Price adjustment mode. One of 'qfq' (default), 'hfq', 'none'.\n"
-            "- **prefer** (List[str], optional): Vendor priority, e.g. ['akshare','tushare'].\n"
-            "- **tushare_token** (str, optional): TuShare token if not set in env."
+            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
+            "Purpose: Fetch A-share daily OHLCV with a unified schema.\n\n"
+            "Required/Optional keys:\n"
+            "- `symbol` (str, required): A-share ticker. Accepts '600519', '600519.SH', 'sh600519', etc.\n"
+            "- `start_date` (str, optional): Start date, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
+            "- `end_date` (str, optional): End date, 'YYYY-MM-DD' or 'YYYYMMDD' (capped at today).\n"
+            "- `adj` (str, optional): One of 'qfq' (default), 'hfq', 'none'.\n"
+            "- `prefer` (List[str], optional): Vendor priority, e.g. ['akshare','tushare'].\n"
+            "- `tushare_token` (str, optional): TuShare token if not in env.\n\n"
+            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "{\n"
+            '  "symbol": "600519.SH",\n'
+            '  "start_date": "2025-01-01",\n'
+            '  "end_date": "2025-01-31",\n'
+            '  "adj": "qfq",\n'
+            '  "prefer": ["akshare","tushare"]\n'
+            "}"
         ),
     )
 
@@ -38,11 +48,20 @@ class CompanyNewsParams(BaseModel):
     params: Dict[str, Any] = Field(
         ...,
         description=(
-            "Input as a JSON-like dict for unified A-share company news (Eastmoney + Sina + AkShare):\n"
-            "- **symbol_or_name** (str, required): Stock code or Chinese company name, e.g. '600519' or '贵州茅台'.\n"
-            "- **limit** (int, optional, default 50): Max items to return (1–200).\n"
-            "- **since** (str, optional): Start date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
-            "- **until** (str, optional): End date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'."
+            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
+            "Purpose: Aggregate A-share company news (Eastmoney + Sina + AkShare).\n\n"
+            "Required/Optional keys:\n"
+            "- `symbol_or_name` (str, required): Stock code or Chinese company name, e.g. '600519' or '贵州茅台'.\n"
+            "- `limit` (int, optional, default 50): Max items to return (1–200).\n"
+            "- `since` (str, optional): Start date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
+            "- `until` (str, optional): End date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n\n"
+            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "{\n"
+            '  "symbol_or_name": "600519",\n'
+            '  "limit": 40,\n'
+            '  "since": "2025-01-01",\n'
+            '  "until": "2025-03-31"\n'
+            "}"
         ),
     )
 
@@ -51,16 +70,27 @@ class RandomIndustryParams(BaseModel):
     params: Dict[str, Any] = Field(
         ...,
         description=(
-            "Input as a JSON-like dict to randomly pick industries and top movers per industry (Eastmoney constituents):\n"
-            "- **limit_industries** (int, optional, default 5): How many industries to sample randomly (1–30 recommended).\n"
-            "- **per_industry** (int, optional, default 5): How many stocks to pick per industry (top by same-day % change).\n"
-            "- **seed** (int|null, optional): Fix seed for reproducible sampling; omit/null for different results each call.\n"
-            "- **include_names** (bool, optional, default true): Include stock names along with codes.\n"
-            "- **exclude_st** (bool, optional, default true): Exclude ST/‘退’ tagged stocks.\n"
-            "- **hard_cap_total** (int|null, optional, default 30): Safety cap for total returned rows; set null to disable."
+            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
+            "Purpose: Randomly sample industries from a fixed Eastmoney list and, for each industry, "
+            "pick the top movers by same-day % change. Default behavior: sample 5 industries and pick 5 stocks per industry.\n\n"
+            "Required/Optional keys:\n"
+            "- `limit_industries` (int, optional, default 5): How many industries to sample randomly (1–30 recommended).\n"
+            "- `per_industry` (int, optional, default 5): How many stocks to pick per industry (top by same-day % change).\n"
+            "- `seed` (int|null, optional): Fix seed for reproducible sampling; omit/null for different results each call.\n"
+            "- `include_names` (bool, optional, default true): Include stock names along with codes.\n"
+            "- `exclude_st` (bool, optional, default true): Exclude ST/“退” tagged stocks.\n"
+            "- `hard_cap_total` (int|null, optional, default 30): Safety cap for total rows; set null to disable.\n\n"
+            "👉 请以我的方式生成参数（必须是一个字典）：\n"
+            "{\n"
+            '  "limit_industries": 5,\n'
+            '  "per_industry": 5,\n'
+            '  "seed": null,\n'
+            '  "include_names": true,\n'
+            '  "exclude_st": true,\n'
+            '  "hard_cap_total": 30\n'
+            "}"
         ),
     )
-
 
 # =========================
 # 工具定义（@tool + description）
@@ -94,7 +124,7 @@ def a_share_company_news_tool(params: Dict[str, Any]) -> Dict[str, Any]:
     name_or_callable="a_share_random_industry_picks",
     description=(
         "Randomly sample industries from a fixed Eastmoney list and, for each industry, pick the top movers by same-day % change. "
-        "Default behavior: sample 5 industries and pick 5 stocks per industry (total ≈25). "
+        "Default: sample 5 industries and pick 5 stocks per industry (≈25 results). "
         "Pass a single dict argument named 'params'."
     ),
     args_schema=RandomIndustryParams,
