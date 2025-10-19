@@ -1,19 +1,31 @@
 from __future__ import annotations
 
+import random
+
 from langchain.agents import ConversationalChatAgent, AgentExecutor
-from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
+from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langchain_openai import ChatOpenAI
 
 from stock_agent.agent.orchestration.OrchestratorPrompt import OrchestrationPrompt
+from stock_agent.memory.Short_termMemory import RedisChatMemory
 
 llm = ChatOpenAI(
     temperature=0.9,
     api_key="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"
 )
-memory = ConversationBufferMemory(
-    memory_key="chat_history",
-    return_messages=True
+history = RedisChatMessageHistory(
+    session_id=str(random.randint(0, 99999999)),
+    url="redis://localhost:6379/0",
+    key_prefix="chat:msg:"
+)
+
+# ③ 记忆组件（return_messages=True 关键）
+memory = RedisChatMemory(
+    chat_memory=history,
+    redis_url="redis://localhost:6379/0",
+    return_messages=True,
+    memory_key="chat_history"
 )
 tools = []
 agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
