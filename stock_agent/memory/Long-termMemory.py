@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = ""
 os.environ["OPENAI_BASE_URL"] = ""
 
 def Init_Models() -> tuple[ChatOpenAI, OpenAIEmbeddings]:
@@ -18,7 +18,7 @@ def Init_Models() -> tuple[ChatOpenAI, OpenAIEmbeddings]:
 
 def Build_Vectorstore(
     file_path: str = "../../Resource/test.txt",
-    index_path: str = "../../Resource/faiss_index"
+    index_path: str = "faiss_index"
 ) -> FAISS:
     """
     构建或加载 FAISS 向量数据库
