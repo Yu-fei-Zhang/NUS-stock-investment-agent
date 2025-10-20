@@ -112,7 +112,7 @@ class IndustryRandomTopPicker:
 
     def __init__(self, rate_limit: RateLimiter | None = None):
         # 推荐：1.0 rps，桶 3，降低被限频概率
-        self.rl = rate_limit or RateLimiter(rate=1.0, capacity=3)
+        self.rl = rate_limit or RateLimiter(rate=0.5, capacity=2)
         self._ak = None
 
     def _ensure_ak(self):
@@ -317,6 +317,41 @@ def _coerce_picker_params(
 # ----------------------------
 _DEF_PICKER: IndustryRandomTopPicker | None = None
 
+# ----------------------------
+# JSON 便捷封装（给 LLM / HTTP 使用）
+# 零参数入口：固定逻辑为随机 5 个行业 × 每行业 5 只
+# ----------------------------
+_DEF_PICKER: IndustryRandomTopPicker | None = None
+
+# 当实时抓取失败（Agent 环境网络受限/限频）时的离线兜底样本（只保留你需要的英文键）
+FALLBACK_ROWS = [
+    {"code": "600519", "name": "贵州茅台", "industry": "酿酒行业"},
+    {"code": "000858", "name": "五粮液", "industry": "酿酒行业"},
+    {"code": "600036", "name": "招商银行", "industry": "银行"},
+    {"code": "600000", "name": "浦发银行", "industry": "银行"},
+    {"code": "600276", "name": "恒瑞医药", "industry": "化学制药"},
+    {"code": "600309", "name": "万华化学", "industry": "化学制品"},
+    {"code": "601012", "name": "隆基绿能", "industry": "光伏设备"},
+    {"code": "300750", "name": "宁德时代", "industry": "电池"},
+    {"code": "002594", "name": "比亚迪", "industry": "汽车整车"},
+    {"code": "000651", "name": "格力电器", "industry": "家电行业"},
+    {"code": "000333", "name": "美的集团", "industry": "家电行业"},
+    {"code": "600703", "name": "三安光电", "industry": "光学光电子"},
+    {"code": "600104", "name": "上汽集团", "industry": "汽车整车"},
+    {"code": "600030", "name": "中信证券", "industry": "证券"},
+    {"code": "601318", "name": "中国平安", "industry": "保险"},
+    {"code": "601888", "name": "中国中免", "industry": "旅游酒店"},
+    {"code": "600028", "name": "中国石化", "industry": "石油行业"},
+    {"code": "601857", "name": "中国石油", "industry": "石油行业"},
+    {"code": "601088", "name": "中国神华", "industry": "煤炭行业"},
+    {"code": "601225", "name": "陕西煤业", "industry": "煤炭行业"},
+    {"code": "600031", "name": "三一重工", "industry": "工程机械"},
+    {"code": "600900", "name": "长江电力", "industry": "电力行业"},
+    {"code": "603288", "name": "海天味业", "industry": "食品饮料"},
+    {"code": "002475", "name": "立讯精密", "industry": "消费电子"},
+    {"code": "600585", "name": "海螺水泥", "industry": "水泥建材"},
+]
+
 def get_random_a_share_sequence() -> T.Dict[str, T.Any]:
     """
     Zero-arg entry:
@@ -327,10 +362,7 @@ def get_random_a_share_sequence() -> T.Dict[str, T.Any]:
 
     Return JSON:
       {
-        "rows": [
-          {"code": "600519", "name": "贵州茅台", "industry": "酿酒行业"},
-          ...
-        ],
+        "rows": [{"code":"XXXXXX","name":"Company","industry":"Industry"}, ...],
         "vendor_meta": {...}
       }
     """
@@ -339,32 +371,40 @@ def get_random_a_share_sequence() -> T.Dict[str, T.Any]:
         _DEF_PICKER = IndustryRandomTopPicker()
 
     picker = _DEF_PICKER
-    k = 5
-    n = 5
+    k, n = 5, 5
     target = k * n
 
-    df = picker.get_random_top_sequence(
-        k_industries=k,
-        n_per_industry=n,
-        seed=None,
-        include_names=True,
-        exclude_st=True,
-        hard_cap_total=target,
-    )
+    try:
+        # 常规在线路径（seed=None => 每次不同）
+        df = picker.get_random_top_sequence(
+            k_industries=k,
+            n_per_industry=n,
+            seed=None,
+            include_names=True,
+            exclude_st=True,
+            hard_cap_total=target,
+        )
+        meta = df.attrs.get("vendor_meta", {})
+        rows_simple = []
+        for _, r in df.iterrows():
+            rows_simple.append({
+                "code": str(r.get("code", "")),
+                "name": ("" if pd.isna(r.get("name", "")) else str(r.get("name", ""))),
+                "industry": ("" if pd.isna(r.get("industry", "")) else str(r.get("industry", ""))),
+            })
+        return {"rows": rows_simple, "vendor_meta": meta}
 
-    meta = df.attrs.get("vendor_meta", {})
+    except Exception as e:
+        # —— 离线兜底：Agent 环境网络不通/被限频时使用 —— #
+        return {
+            "rows": FALLBACK_ROWS[:target],
+            "vendor_meta": {
+                "vendor": "fallback",
+                "reason": str(e)[:200],
+                "note": "Online fetch failed in agent runtime; returned static sample.",
+                "target_total": target,
+                "achieved": min(len(FALLBACK_ROWS), target),
+            },
+        }
 
-    # 输出英文键：code / name / industry
-    rows_simple = []
-    for _, r in df.iterrows():
-        rows_simple.append({
-            "code": str(r.get("code", "")),
-            "name": ("" if pd.isna(r.get("name", "")) else str(r.get("name", ""))),
-            "industry": ("" if pd.isna(r.get("industry", "")) else str(r.get("industry", ""))),
-        })
-
-    return {
-        "rows": rows_simple,
-        "vendor_meta": meta,
-    }
 
