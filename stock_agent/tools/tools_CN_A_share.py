@@ -4,136 +4,90 @@
 # ──────────────────────────────────────────────────────────────────────────────
 from __future__ import annotations
 
-from typing import Optional, Literal, Dict, Any, List
+from typing import Dict, Any, List
 from pydantic import BaseModel, Field
 from langchain.tools import tool
+import json
 
-# 复用你在包里已导出的业务函数（这些函数已支持“单字典参数”）
+# 复用你在包里已导出的业务函数
 from stock_agent.tools import (
     get_stock_market_data_united,
     get_company_news_united,
-    get_random_a_share_sequence,
+    get_random_a_share_sequence,   # 现在是零参数函数
 )
 
 # =========================
-# 参数模型（单字段 params，集中写描述）
+# 行情 & 新闻：字符串(JSON)参数
 # =========================
+
+def _parse_json_params(params_json: str) -> Dict[str, Any]:
+    try:
+        data = json.loads(params_json)
+    except Exception as e:
+        raise ValueError(f"params_json is not valid JSON: {e}")
+    if not isinstance(data, dict):
+        raise ValueError("params_json must be a JSON object (e.g. '{\"key\":\"value\"}').")
+    return data
 
 class MarketDataParams(BaseModel):
-    params: Dict[str, Any] = Field(
+    params_json: str = Field(
         ...,
         description=(
-            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
-            "Purpose: Fetch A-share daily OHLCV with a unified schema.\n\n"
-            "Required/Optional keys:\n"
-            "- `symbol` (str, required): A-share ticker. Accepts '600519', '600519.SH', 'sh600519', etc.\n"
-            "- `start_date` (str, optional): Start date, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
-            "- `end_date` (str, optional): End date, 'YYYY-MM-DD' or 'YYYYMMDD' (capped at today).\n"
-            "- `adj` (str, optional): One of 'qfq' (default), 'hfq', 'none'.\n"
-            "- `prefer` (List[str], optional): Vendor priority, e.g. ['akshare','tushare'].\n"
-            "- `tushare_token` (str, optional): TuShare token if not in env.\n\n"
-            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
-            "{\n"
-            '  "symbol": "600519.SH",\n'
-            '  "start_date": "2025-01-01",\n'
-            '  "end_date": "2025-01-31",\n'
-            '  "adj": "qfq",\n'
-            '  "prefer": ["akshare","tushare"]\n'
-            "}"
+            "PASS EXACTLY ONE ARGUMENT named `params_json`, and it MUST be a JSON STRING encoding an OBJECT.\n"
+            "Allowed keys: symbol (required), start_date, end_date, adj, prefer, tushare_token.\n"
+            "Example: "
+            '{"symbol":"600519.SH","start_date":"2025-01-01","adj":"qfq","prefer":["akshare","tushare"]}'
         ),
     )
-
 
 class CompanyNewsParams(BaseModel):
-    params: Dict[str, Any] = Field(
+    params_json: str = Field(
         ...,
         description=(
-            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
-            "Purpose: Aggregate A-share company news (Eastmoney + Sina + AkShare).\n\n"
-            "Required/Optional keys:\n"
-            "- `symbol_or_name` (str, required): Stock code or Chinese company name, e.g. '600519' or '贵州茅台'.\n"
-            "- `limit` (int, optional, default 50): Max items to return (1–200).\n"
-            "- `since` (str, optional): Start date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n"
-            "- `until` (str, optional): End date inclusive, 'YYYY-MM-DD' or 'YYYYMMDD'.\n\n"
-            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
-            "{\n"
-            '  "symbol_or_name": "600519",\n'
-            '  "limit": 40,\n'
-            '  "since": "2025-01-01",\n'
-            '  "until": "2025-03-31"\n'
-            "}"
+            "PASS EXACTLY ONE ARGUMENT named `params_json`, and it MUST be a JSON STRING encoding an OBJECT.\n"
+            "Allowed keys: symbol_or_name (required), limit, since, until.\n"
+            'Example: {"symbol_or_name":"600519","limit":20,"since":"2025-01-01"}'
         ),
     )
-
-
-class RandomIndustryParams(BaseModel):
-    params: Dict[str, Any] = Field(
-        ...,
-        description=(
-            "PASS EXACTLY ONE ARGUMENT named `params`, and it MUST be a **JSON object** (not a string).\n"
-            "Purpose: Randomly sample industries from a fixed Eastmoney list and, for each industry, "
-            "pick the top movers by same-day % change. Default behavior: sample 5 industries and pick 5 stocks per industry.\n\n"
-            "Required/Optional keys:\n"
-            "- `limit_industries` (int, optional, default 5): How many industries to sample randomly (1–30 recommended).\n"
-            "- `per_industry` (int, optional, default 5): How many stocks to pick per industry (top by same-day % change).\n"
-            "- `seed` (int|null, optional): Fix seed for reproducible sampling; omit/null for different results each call.\n"
-            "- `include_names` (bool, optional, default true): Include stock names along with codes.\n"
-            "- `exclude_st` (bool, optional, default true): Exclude ST/“退” tagged stocks.\n"
-            "- `hard_cap_total` (int|null, optional, default 30): Safety cap for total rows; set null to disable.\n\n"
-            "以下是我给你参数输入方式的一个例子，请务必以如下的方式输入你的参数（必须是一个字典）：\n"
-            "{\n"
-            '  "limit_industries": 5,\n'
-            '  "per_industry": 5,\n'
-            '  "seed": null,\n'
-            '  "include_names": true,\n'
-            '  "exclude_st": true,\n'
-            '  "hard_cap_total": 30\n'
-            "}"
-        ),
-    )
-
-# =========================
-# 工具定义（@tool + description）
-# =========================
 
 @tool(
     name_or_callable="a_share_market_data",
-    description="Fetch A-share daily OHLCV with a unified schema (supports pre/post adjustment). "
-                "Pass a single dict argument named 'params'.",
+    description="Fetch A-share daily OHLCV with a unified schema. "
+                "Pass a single JSON string argument named 'params_json'.",
     args_schema=MarketDataParams,
     return_direct=False,
 )
-def a_share_market_data_tool(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Return daily OHLCV for the given A-share symbol using a single dict input."""
+def a_share_market_data_tool(params_json: str) -> Dict[str, Any]:
+    params = _parse_json_params(params_json)
     return get_stock_market_data_united(params)
-
 
 @tool(
     name_or_callable="a_share_company_news",
-    description="Aggregate A-share company news from Eastmoney + Sina + AkShare with a unified schema. "
-                "Pass a single dict argument named 'params'.",
+    description="Aggregate A-share company news from Eastmoney + Sina + AkShare. "
+                "Pass a single JSON string argument named 'params_json'.",
     args_schema=CompanyNewsParams,
     return_direct=False,
 )
-def a_share_company_news_tool(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Return merged company news given a stock code or Chinese name using a single dict input."""
+def a_share_company_news_tool(params_json: str) -> Dict[str, Any]:
+    params = _parse_json_params(params_json)
     return get_company_news_united(params)
 
+# =========================
+# 随机行业挑股：零参数工具
+# =========================
 
 @tool(
     name_or_callable="a_share_random_industry_picks",
     description=(
-        "Randomly sample industries from a fixed Eastmoney list and, for each industry, pick the top movers by same-day % change. "
-        "Default: sample 5 industries and pick 5 stocks per industry (≈25 results). "
-        "Pass a single dict argument named 'params'."
+        "No real parameters. You MAY pass {} or an empty string. "
+        "Randomly sample 5 industries and pick top 5 movers per industry (~25 stocks). "
+        'Output: {"rows":[{"code":"XXXXXX","name":"Company","industry":"Industry"},...],"vendor_meta":{...}}'
     ),
-    args_schema=RandomIndustryParams,
     return_direct=False,
 )
-def a_share_random_industry_picks_tool(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Randomly sample industries and return top-N stocks per industry (same-day % change priority)."""
-    return get_random_a_share_sequence(params)
-
+def a_share_random_industry_picks_tool(_ignored: Any = None) -> Dict[str, Any]:
+    """Zero-arg tool. Any input is ignored (supports {}, '', None)."""
+    return get_random_a_share_sequence()
 
 # 导出一个工具列表，便于一键注册到 Agent
 TOOLS: List[Any] = [

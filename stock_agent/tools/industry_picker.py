@@ -306,45 +306,65 @@ def _coerce_picker_params(
         "hard_cap_total": hard_cap_total,
     }
 
-def get_random_a_share_sequence(
-    params: T.Optional[T.Dict[str, T.Any]] = None,
-    **kwargs,
-) -> T.Dict[str, T.Any]:
+# ──────────────────────────────────────────────────────────────────────────────
+# File: stock_agent/tools/industry_picker.py
+# （保留上文所有类与函数；仅替换“JSON 便捷封装（给 LLM / HTTP 使用）”这一段）
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ----------------------------
+# JSON 便捷封装（给 LLM / HTTP 使用）
+# 零参数入口：固定逻辑为随机 5 个行业 × 每行业 5 只
+# ----------------------------
+_DEF_PICKER: IndustryRandomTopPicker | None = None
+
+def get_random_a_share_sequence() -> T.Dict[str, T.Any]:
     """
-    单参数（dict）入口 —— 适配只能传一个参数给 Agent 的场景。
+    Zero-arg entry:
+      - Randomly pick 5 industries (from a fixed Eastmoney list)
+      - For each industry, pick top 5 stocks by same-day % change (fallback to market cap when needed)
+      - Exclude ST / “退”
+      - Return ~25 stocks
 
-    参数字典 schema：
-    {
-      "limit_industries": 5,   # 从固定 86 个行业中随机抽取多少个行业
-      "per_industry": 5,       # 每个行业取多少支（当日涨幅优先）
-      "seed": null,            # 可选，固定随机种子；不传则每次不同
-      "include_names": true,   # 是否包含股票名称
-      "exclude_st": true,      # 是否剔除 ST/退市相关
-      "hard_cap_total": 30     # 安全上限；None 表示不设上限
-    }
-
-    仍兼容旧式：get_random_a_share_sequence(limit_industries=5, per_industry=5, ...)
+    Return JSON:
+      {
+        "rows": [
+          {"code": "600519", "name": "贵州茅台", "industry": "酿酒行业"},
+          ...
+        ],
+        "vendor_meta": {...}
+      }
     """
-    p = _coerce_picker_params(params, **kwargs)
-
     global _DEF_PICKER
     if _DEF_PICKER is None:
         _DEF_PICKER = IndustryRandomTopPicker()
 
     picker = _DEF_PICKER
-    sel = picker.random_pick_industries(k=p["limit_industries"], seed=p["seed"])
+    k = 5
+    n = 5
+    target = k * n
+
     df = picker.get_random_top_sequence(
-        k_industries=p["limit_industries"],
-        n_per_industry=p["per_industry"],
-        seed=p["seed"],
-        include_names=p["include_names"],
-        exclude_st=p["exclude_st"],
-        hard_cap_total=p["hard_cap_total"],
+        k_industries=k,
+        n_per_industry=n,
+        seed=None,
+        include_names=True,
+        exclude_st=True,
+        hard_cap_total=target,
     )
+
     meta = df.attrs.get("vendor_meta", {})
+
+    # 输出英文键：code / name / industry
+    rows_simple = []
+    for _, r in df.iterrows():
+        rows_simple.append({
+            "code": str(r.get("code", "")),
+            "name": ("" if pd.isna(r.get("name", "")) else str(r.get("name", ""))),
+            "industry": ("" if pd.isna(r.get("industry", "")) else str(r.get("industry", ""))),
+        })
+
     return {
-        "selected_industries": sel.to_dict(orient="records"),
-        "rows": df.to_dict(orient="records"),
-        "codes": df["code"].tolist(),
+        "rows": rows_simple,
         "vendor_meta": meta,
     }
+
