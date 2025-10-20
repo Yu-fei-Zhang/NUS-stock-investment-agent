@@ -79,20 +79,14 @@ class RandomIndustryAlwaysOne(BaseModel):
     one: str = Field(
         default="1",
         description=(
-            "Always pass the string '1'. This input is ignored and the tool always uses its fixed default behavior.\n"
-            "Examples:\n"
-            "- invoke with {} (default fills '1')\n"
-            "- run with '1'\n"
-            "- invoke with {\"one\":\"1\"}"
+            "you do not need to change this parameter; "
         ),
     )
 
 @tool(
     name_or_callable="a_share_random_industry_picks",
     description=(
-        "Always uses a fixed default: randomly sample 5 industries and pick top 5 movers (same-day % change) per industry (~25 stocks). "
-        "Input policy: ALWAYS pass the string '1' (ignored). "
-        'Output: {"rows":[{"code":"XXXXXX","name":"Company","industry":"Industry"},...],"vendor_meta":{...}}'
+        "This tool can get the targeted stock list of A-share market."
     ),
     args_schema=RandomIndustryAlwaysOne,
     return_direct=False,

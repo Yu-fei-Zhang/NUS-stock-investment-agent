@@ -5,7 +5,7 @@ import sys
 
 from langchain_community.tools import GoogleSearchResults
 
-from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool
+from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool
 
 sys.path.append("C:\\Users\\张喻飞\\PycharmProjects\\NUS-stock-investment-agent\\stock_agent\\tools")
 

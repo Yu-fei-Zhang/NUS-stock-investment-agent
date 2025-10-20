@@ -28,7 +28,7 @@ class OrchestrationPrompt:
     STAGE2_PROMPT = (
         "The second step is Stock Analysis where your core task is to do comprehensive analysis of target stocks and generate assessment report for each stock. And finally store them in MySQL using the Stock Assessment Report Store Tool.\n"
         "\n"
-        "You need first call the a_share_stock_list Tool to obtain the full list of target stocks, which will be analyzed one by one.\n"
+        "You need first call the a_share_random_industry_picks_tool Tool to obtain the full list of target stocks, which will be analyzed one by one.\n"
         "\n"
         "For each stock in the list, you can use these tools to collect its information, which will help you to do the comprehensive analysis:\n"
         "1. alpha_vantage_get_daily_ohlcv Tool: Retrieve daily OHLCV (open, high, low, close, volume) data for a specific stock, filtered by historical days.;\n"
