@@ -13,11 +13,11 @@ import json
 from stock_agent.tools import (
     get_stock_market_data_united,
     get_company_news_united,
-    get_random_a_share_sequence,   # 现在是零参数函数
+    get_random_a_share_sequence,   # 零参数函数（内部固定逻辑）
 )
 
 # =========================
-# 行情 & 新闻：字符串(JSON)参数
+# 行情 & 新闻：字符串(JSON)参数——保持不变
 # =========================
 
 def _parse_json_params(params_json: str) -> Dict[str, Any]:
@@ -35,8 +35,7 @@ class MarketDataParams(BaseModel):
         description=(
             "PASS EXACTLY ONE ARGUMENT named `params_json`, and it MUST be a JSON STRING encoding an OBJECT.\n"
             "Allowed keys: symbol (required), start_date, end_date, adj, prefer, tushare_token.\n"
-            "Example: "
-            '{"symbol":"600519.SH","start_date":"2025-01-01","adj":"qfq","prefer":["akshare","tushare"]}'
+            'Example: {"symbol":"600519.SH","start_date":"2025-01-01","adj":"qfq","prefer":["akshare","tushare"]}'
         ),
     )
 
@@ -73,25 +72,39 @@ def a_share_company_news_tool(params_json: str) -> Dict[str, Any]:
     return get_company_news_united(params)
 
 # =========================
-# 随机行业挑股：零参数工具
+# 随机行业挑股：永久固定输入 "1"
 # =========================
+
+class RandomIndustryAlwaysOne(BaseModel):
+    one: str = Field(
+        default="1",
+        description=(
+            "Always pass the string '1'. This input is ignored and the tool always uses its fixed default behavior.\n"
+            "Examples:\n"
+            "- invoke with {} (default fills '1')\n"
+            "- run with '1'\n"
+            "- invoke with {\"one\":\"1\"}"
+        ),
+    )
 
 @tool(
     name_or_callable="a_share_random_industry_picks",
     description=(
-        "No real parameters. You MAY pass {} or an empty string. "
-        "Randomly sample 5 industries and pick top 5 movers per industry (~25 stocks). "
+        "Always uses a fixed default: randomly sample 5 industries and pick top 5 movers (same-day % change) per industry (~25 stocks). "
+        "Input policy: ALWAYS pass the string '1' (ignored). "
         'Output: {"rows":[{"code":"XXXXXX","name":"Company","industry":"Industry"},...],"vendor_meta":{...}}'
     ),
+    args_schema=RandomIndustryAlwaysOne,
     return_direct=False,
 )
-def a_share_random_industry_picks_tool(_ignored: Any = None) -> Dict[str, Any]:
-    """Zero-arg tool. Any input is ignored (supports {}, '', None)."""
+def a_share_random_industry_picks_tool(one: str = "1") -> Dict[str, Any]:
+    """Fixed-parameter tool. The string input '1' is required by the framework but ignored by the logic."""
+    # 忽略 one，无论传什么都执行固定逻辑
     return get_random_a_share_sequence()
 
-# 导出一个工具列表，便于一键注册到 Agent
-TOOLS: List[Any] = [
-    a_share_market_data_tool,
-    a_share_company_news_tool,
-    a_share_random_industry_picks_tool,
-]
+# # 导出一个工具列表，便于一键注册到 Agent
+# TOOLS: List[Any] = [
+#     a_share_market_data_tool,
+#     a_share_company_news_tool,
+#     a_share_random_industry_picks_tool,
+# ]
