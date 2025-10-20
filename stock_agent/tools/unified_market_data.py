@@ -1,8 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # File: stock_agent/tools/unified_market_data.py
 # ──────────────────────────────────────────────────────────────────────────────
-from __future__ import annotations
-
 from typing import Optional, List, Literal
 import typing as T
 import os
@@ -22,6 +20,7 @@ from stock_agent.tools.common import (
     with_retries,
 )
 
+
 class UnifiedMarketDataTool:
     """A股统一行情工具（优先 TuShare，其次 AkShare）。
 
@@ -32,19 +31,16 @@ class UnifiedMarketDataTool:
     def __init__(
         self,
         tushare_token: Optional[str] = None,
-        prefer: Optional[List[str]] = None,
+        prefer: List[str] = None,
         rate_limit: Optional[RateLimiter] = None,
     ):
         self.tushare_token = tushare_token or os.environ.get("TUSHARE_TOKEN")
-        # 若未给 prefer：有 token 则 tushare 优先，否则 akshare 优先
+        # 有 token 则优先 tushare；否则 akshare
         self.prefer = prefer or (["tushare", "akshare"] if self.tushare_token else ["akshare", "tushare"])
         self.rl = rate_limit or RateLimiter(rate=4, capacity=8)
         self._ts = None  # TuShare client
         self._ak = None  # AkShare module
 
-    # ---------------------------
-    # Public
-    # ---------------------------
     def get_kline_daily(
         self,
         symbol: str,
@@ -52,13 +48,18 @@ class UnifiedMarketDataTool:
         end_date: Optional[str] = None,
         adj: Optional[Literal["qfq", "hfq", "none"]] = "qfq",
     ) -> pd.DataFrame:
-        """主入口：按日K获取行情（自动按 prefer 在多供应商间回退）"""
         sym = normalize_symbol(symbol)
-        start = _ensure_date(start_date)
-        end = _ensure_date(end_date) or _today_str_tz()
+        start = _ensure_date(start_date) if start_date else None
+        end = _ensure_date(end_date) if end_date else _today_str_tz()
         today = _today_str_tz()
         if end > today:
             end = today
+
+        # 若未给 start_date，这里兜底取近两周（含今天，向前 14 天）
+        if not start:
+            # _today_str_tz -> "YYYYMMDD"
+            tdate = dt.datetime.strptime(today, "%Y%m%d").date()
+            start = (tdate - dt.timedelta(days=14)).strftime("%Y%m%d")
 
         last_err = None
         for vendor in self.prefer:
@@ -130,12 +131,12 @@ class UnifiedMarketDataTool:
                 af["date"] = pd.to_datetime(af["date"], format="%Y%m%d")
                 af.sort_values("date", inplace=True)
                 df = df.merge(af[["date", "adj_factor"]], on="date", how="left")
-                # 价格复权
                 if adj == "qfq":
                     base = df["adj_factor"].iloc[-1]
-                else:  # hfq
+                    scale = df["adj_factor"] / base
+                else:
                     base = df["adj_factor"].iloc[0]
-                scale = df["adj_factor"] / base
+                    scale = df["adj_factor"] / base
                 for col in ["open", "high", "low", "close"]:
                     df[col] = (df[col] / scale).astype(float)
             else:
@@ -172,100 +173,38 @@ class UnifiedMarketDataTool:
         return df
 
 
-# =========================
-# 单字典参数的便捷入口（兼容旧调用）
-# =========================
+# Convenience function for tool-calling
 _DEF_TOOL: Optional[UnifiedMarketDataTool] = None
 
-def _coerce_params_dict(
-    params: Optional[T.Union[dict, str]] = None,
-    **kwargs,
-) -> dict:
+def get_stock_market_data_united(symbol: str) -> T.Dict[str, T.Any]:
     """
-    将各种输入形式统一成 dict：
-    - params 为 dict：直接解析其中字段
-    - params 为 str：视为 symbol
-    - 兼容旧式 kwargs：symbol=..., start_date=..., end_date=..., adj=..., prefer=..., tushare_token=...
-    """
-    if params is None:
-        params = {}
-    if isinstance(params, str):
-        params = {"symbol": params}
-    if not isinstance(params, dict):
-        raise ToolError("params must be a dict or a symbol string")
+    便捷入口：只传一支股票代码，日期窗口默认取**近两周**（含今天）。
+    - 示例：get_stock_market_data_united("600519.SH") 或 "600519"
+    - 价格复权模式固定为 'qfq'（可在类接口中自定义）
 
-    # 合并 kwargs（kwargs 优先）
-    merged = {**params, **kwargs}
-
-    # 规范化键名（可加别名）
-    symbol = merged.get("symbol") or merged.get("ts_code") or merged.get("ticker")
-    if not symbol:
-        raise ToolError("`symbol` is required in params dict")
-
-    start_date = merged.get("start_date")
-    end_date = merged.get("end_date")
-    adj = merged.get("adj", "qfq")
-    prefer = merged.get("prefer")  # Optional[List[str]]
-    tushare_token = merged.get("tushare_token") or os.environ.get("TUSHARE_TOKEN")
-
-    # 合法性
-    if adj not in (None, "qfq", "hfq", "none"):
-        raise ToolError("`adj` must be one of: 'qfq' | 'hfq' | 'none'")
-
-    return {
-        "symbol": str(symbol),
-        "start_date": start_date,
-        "end_date": end_date,
-        "adj": adj,
-        "prefer": prefer,
-        "tushare_token": tushare_token,
-    }
-
-def get_stock_market_data_united(
-    params: Optional[T.Union[dict, str]] = None,
-    **kwargs,
-) -> T.Dict[str, T.Any]:
-    """
-    单参数（dict）入口 —— 适配只能传一个参数给 Agent 的场景。
-
-    参数字典 schema（全部可选，symbol 必填）：
+    返回 JSON:
     {
-      "symbol": "600519.SH" | "600519",          # 必填；支持含交易所或纯 6 位
-      "start_date": "YYYY-MM-DD" | "YYYYMMDD",   # 选填
-      "end_date":   "YYYY-MM-DD" | "YYYYMMDD",   # 选填；默认今天
-      "adj": "qfq" | "hfq" | "none",             # 选填；默认 "qfq"
-      "prefer": ["akshare","tushare"],           # 选填；供应商优先级
-      "tushare_token": "<YOUR_TUSHARE_TOKEN>"    # 选填；如未设置环境变量
+      "symbol": "<输入的代码>",
+      "rows": [
+        {"date":"YYYY-MM-DD","open":...,"high":...,"low":...,"close":...,"volume":...,"amount":...,"adj_factor":...},
+        ...
+      ],
+      "vendor_meta": {...}
     }
-
-    兼容旧式调用：get_stock_market_data_united(symbol="600519.SH", start_date="2025-01-01", ...)
     """
-    p = _coerce_params_dict(params, **kwargs)
-
     global _DEF_TOOL
-    # 若首次调用或需要更换 token，则重建 Tool；否则复用并允许动态修改 prefer
-    need_recreate = (_DEF_TOOL is None) or (p["tushare_token"] and p["tushare_token"] != _DEF_TOOL.tushare_token)
-    if need_recreate:
-        _DEF_TOOL = UnifiedMarketDataTool(
-            tushare_token=p["tushare_token"],
-            prefer=p["prefer"],
-        )
-    else:
-        if p["prefer"]:
-            _DEF_TOOL.prefer = p["prefer"]
+    if _DEF_TOOL is None:
+        _DEF_TOOL = UnifiedMarketDataTool()
 
-    df = _DEF_TOOL.get_kline_daily(
-        symbol=p["symbol"],
-        start_date=p["start_date"],
-        end_date=p["end_date"],
-        adj=p["adj"],
-    )
+    # 计算默认窗口：今日 & 今日-14天
+    end_ymd = _today_str_tz()  # "YYYYMMDD"
+    end_date = end_ymd
+    start_date = (dt.datetime.strptime(end_ymd, "%Y%m%d").date() - dt.timedelta(days=14)).strftime("%Y%m%d")
+
+    # 固定 qfq（如需开放，可改为参数或环境变量控制）
+    df = _DEF_TOOL.get_kline_daily(symbol, start_date=start_date, end_date=end_date, adj="qfq")
+
     meta = df.attrs.get("vendor_meta", {})
     out = df.copy()
     out["date"] = out["date"].dt.strftime("%Y-%m-%d")
-    return {
-        "symbol": p["symbol"],
-        "rows": out.to_dict(orient="records"),
-        "vendor_meta": meta,
-    }
-
+    return {"symbol": symbol, "rows": out.to_dict(orient="records"), "vendor_meta": meta}

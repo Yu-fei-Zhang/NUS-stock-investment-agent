@@ -3,7 +3,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 from __future__ import annotations
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import typing as T
 import math
 import datetime as dt
@@ -20,17 +20,43 @@ from stock_agent.tools.common import (
 )
 
 
+# ---------------------------
+# Helpers
+# ---------------------------
+
+def _today_str() -> str:
+    """Return today's date as 'YYYY-MM-DD' (local)."""
+    return dt.date.today().strftime("%Y-%m-%d")
+
+
+def _rename_like(df: pd.DataFrame, mapping: Dict[T.Union[str, tuple], str]) -> pd.DataFrame:
+    rename = {}
+    for srcs, dst in mapping.items():
+        src_list = (srcs,) if isinstance(srcs, str) else list(srcs)
+        for c in src_list:
+            if c in df.columns:
+                rename[c] = dst
+                break
+    if rename:
+        df = df.rename(columns=rename)
+    return df
+
+
+# ---------------------------
+# Main Tool
+# ---------------------------
+
 class UnifiedNewsTool:
     """
     A股统一新闻工具（Eastmoney + Sina + AkShare 兜底）
 
     统一输出字段（DataFrame）:
-      - published_at: pd.Timestamp（Asia/Shanghai，本地无 tz）
+      - published_at: pd.Timestamp（本地无 tz）
       - title: str
       - summary: str | None
       - url: str
       - source: "eastmoney" | "sina" | "akshare"
-      - symbol: str（代码或查询关键字）
+      - symbol: str（代码）
       - company_name: str
     """
 
@@ -43,27 +69,29 @@ class UnifiedNewsTool:
             self._ak = _lazy_import("akshare")
         return self._ak
 
-    # ---------------------------
-    # Helpers
-    # ---------------------------
     def _code_to_name(self, code: str) -> Optional[str]:
+        """通过 AkShare 映射 A 股代码 -> 公司名；失败则返回 None。"""
         ak = self._ensure_ak()
         self.rl.acquire()
-        df = with_retries(ak.stock_info_a_code_name)()
+        try:
+            df = with_retries(ak.stock_info_a_code_name)()
+        except Exception:
+            return None
         if df is None or df.empty:
             return None
-        df = df.rename(columns={"code": "code", "name": "name"})
-        row = df[df["code"] == code]
+        df = _rename_like(df, {("code", "代码"): "code", ("name", "名称"): "name"})
+        row = df[df.get("code", pd.Series(dtype=str)) == code]
         if not row.empty:
-            return row.iloc[0]["name"]
+            return str(row.iloc[0].get("name", None))
         return None
 
     # ---------------------------
     # Vendors
     # ---------------------------
-    def _fetch_eastmoney_search(self, keyword: str, limit: int = 50) -> pd.DataFrame:
+    def _fetch_eastmoney_search(self, keyword: str, limit: int = 80) -> pd.DataFrame:
         """
         抓取东财搜索页（HTML），适配多入口与 DOM 变化。
+        以“公司名”作为关键字。
         """
         try:
             import requests
@@ -80,7 +108,6 @@ class UnifiedNewsTool:
             "Referer": "https://www.eastmoney.com/",
         }
 
-        # 同时尝试两种路径与两种参数名
         url_candidates = [
             ("https://so.eastmoney.com/news/s", "keyword"),
             ("https://so.eastmoney.com/news/s", "KeyWord"),
@@ -88,7 +115,7 @@ class UnifiedNewsTool:
             ("https://so.eastmoney.com/web/s",  "KeyWord"),
         ]
 
-        items: List[Dict[str, T.Any]] = []
+        items: List[Dict[str, Any]] = []
         for base, keyname in url_candidates:
             if len(items) >= limit:
                 break
@@ -102,7 +129,6 @@ class UnifiedNewsTool:
             html = with_retries(_get_html)()
             soup = BeautifulSoup(html, "lxml")
 
-            # 常见几种标题/时间/摘要结构
             anchors = []
             anchors += soup.select(".news-item h3 a, .title a")
             anchors += soup.select("ul#newsList li h3 a, ul.search-list li h3 a")
@@ -157,9 +183,10 @@ class UnifiedNewsTool:
             df["published_at"] = df["published_at"].apply(_parse_dt)
         return df
 
-    def _fetch_sina_stock_news(self, sina_symbol: str, pages: int = 2) -> pd.DataFrame:
+    def _fetch_sina_stock_news(self, sina_symbol: str, pages: int = 3) -> pd.DataFrame:
         """
         抓取新浪个股新闻分页（HTML）。注意 GBK/GB2312 编码！
+        sina_symbol 示例：'sh600519' / 'sz000001'
         """
         try:
             import requests
@@ -167,7 +194,7 @@ class UnifiedNewsTool:
         except Exception:
             return pd.DataFrame()
 
-        items: List[Dict[str, T.Any]] = []
+        items: List[Dict[str, Any]] = []
         headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -184,18 +211,16 @@ class UnifiedNewsTool:
 
             def _get_text():
                 r = requests.get(url, params=params, headers=headers, timeout=10)
-                # 明确按 GB 编码解码（多数页 headers 没写或写错）
-                r.encoding = "gb18030"
+                r.encoding = "gb18030"  # 明确按 GB 解码
                 return r.text
 
             html = with_retries(_get_text)()
             soup = BeautifulSoup(html, "lxml")
 
-            # 多种 DOM 兜底
             candidates = []
-            candidates += soup.select("#newslist a[target='_blank']")               # 旧结构
-            candidates += soup.select("div.datelist a[target='_blank']")            # 常见结构
-            candidates += soup.select("ul#newslist2 li a[target='_blank']")         # 变体
+            candidates += soup.select("#newslist a[target='_blank']")
+            candidates += soup.select("div.datelist a[target='_blank']")
+            candidates += soup.select("ul#newslist2 li a[target='_blank']")
             seen = set()
             for a in candidates:
                 href = a.get("href")
@@ -235,9 +260,9 @@ class UnifiedNewsTool:
             df["published_at"] = df["published_at"].apply(_parse)
         return df
 
-    def _fetch_akshare_general_news(self, keyword: str, limit: int = 50) -> pd.DataFrame:
+    def _fetch_akshare_general_news(self, keyword: str, limit: int = 80) -> pd.DataFrame:
         """
-        使用 AkShare 通用财经新闻接口，按关键词过滤标题。
+        使用 AkShare 通用财经新闻接口，按关键词（公司名）过滤标题。
         """
         ak = self._ensure_ak()
         self.rl.acquire()
@@ -249,61 +274,56 @@ class UnifiedNewsTool:
         if df is None or df.empty:
             return pd.DataFrame()
 
-        # 统一字段名
-        rename = {}
-        for c in df.columns:
-            if c in ("标题", "title"):
-                rename[c] = "title"
-            elif c in ("摘要", "content", "summary"):
-                rename[c] = "summary"
-            elif c in ("链接", "url"):
-                rename[c] = "url"
-            elif c in ("时间", "发布时间", "publish_time"):
-                rename[c] = "published_at"
-        if rename:
-            df = df.rename(columns=rename)
-
+        df = _rename_like(df, {
+            ("标题", "title"): "title",
+            ("摘要", "content", "summary"): "summary",
+            ("链接", "url"): "url",
+            ("时间", "发布时间", "publish_time"): "published_at",
+        })
         if "title" not in df:
             return pd.DataFrame()
 
         m = df["title"].astype(str).str.contains(keyword, case=False, na=False)
-        df = df[m].copy()
-        df["source"] = "akshare"
-        if "published_at" in df:
-            df["published_at"] = pd.to_datetime(df["published_at"], errors="coerce")
+        out = df.loc[m].copy()
+        out["source"] = "akshare"
+        if "published_at" in out:
+            out["published_at"] = pd.to_datetime(out["published_at"], errors="coerce")
 
-        return df.head(limit)
+        return out.head(limit)
 
     # ---------------------------
-    # Public API
+    # Public: by symbol only
     # ---------------------------
-    def get_company_news(
+    def get_company_news_by_code(
         self,
-        symbol_or_name: str,
-        limit: int = 50,
-        since: Optional[str] = None,
+        symbol: str,
+        limit: int = 80,
+        since: str = "2024-10-01",
         until: Optional[str] = None,
     ) -> pd.DataFrame:
-        # 解析为代码/公司名；若传入公司名则直接用作 keyword
-        try:
-            sym = normalize_symbol(symbol_or_name)
-            code = sym["code"]
-            name = self._code_to_name(code) or code
-            sina_symbol = sym["sina"]
-        except ToolError:
-            code = None
-            name = symbol_or_name.strip()
-            sina_symbol = None
+        """
+        仅接收“股票代码/带交易所前后缀的代码”。
+        默认时间窗口：自 2024-10-01 至今天（含）。
+        """
+        # 解析为标准结构
+        sym = normalize_symbol(symbol)
+        code = sym["code"]
+        company_name = self._code_to_name(code) or code
+        sina_symbol = sym.get("sina", None)
+
+        # 默认 today（YYYY-MM-DD）
+        if not until:
+            until = _today_str()
 
         frames: List[pd.DataFrame] = []
 
-        # 1) 东财：公司名关键词搜索
+        # 1) Eastmoney 搜索（按公司名）
         try:
-            frames.append(self._fetch_eastmoney_search(name, limit=limit))
+            frames.append(self._fetch_eastmoney_search(company_name, limit=limit))
         except Exception:
             pass
 
-        # 2) 新浪：如果传了代码，使用个股新闻分页
+        # 2) Sina 个股新闻（按 sina_symbol）
         if sina_symbol:
             try:
                 pages = max(1, min(3, int(math.ceil(limit / 30))))
@@ -311,20 +331,19 @@ class UnifiedNewsTool:
             except Exception:
                 pass
 
-        # 3) AkShare 通用新闻兜底（按公司名关键词过滤）
+        # 3) AkShare 通用新闻兜底（按公司名关键词）
         try:
-            frames.append(self._fetch_akshare_general_news(name, limit=limit))
+            frames.append(self._fetch_akshare_general_news(company_name, limit=limit))
         except Exception:
             pass
 
-        # 仅保留非空 DataFrame，避免 pd.concat([]) 抛错
         non_empty = [f for f in frames if f is not None and not f.empty]
         if not non_empty:
             return pd.DataFrame()
 
         df = pd.concat(non_empty, ignore_index=True)
 
-        # 标准字段保证
+        # 标准字段完善
         for col in ["title", "url", "summary", "source"]:
             if col not in df:
                 df[col] = None
@@ -333,101 +352,57 @@ class UnifiedNewsTool:
         else:
             df["published_at"] = pd.NaT
 
-        df["symbol"] = code or name
-        df["company_name"] = name
+        df["symbol"] = code
+        df["company_name"] = company_name
 
-        # 去重（按 title+url），最新在前
+        # 去重 & 排序
         df.sort_values(["published_at"], ascending=[False], inplace=True)
         df = df.drop_duplicates(subset=["title", "url"], keep="first")
 
-        # 时间窗口过滤
+        # 时间窗口过滤（含边界）
         s = _ensure_date(since) if since else None
         u = _ensure_date(until) if until else None
         if s:
             sdt = pd.to_datetime(s)
             df = df[(df["published_at"].isna()) | (df["published_at"] >= sdt)]
         if u:
-            # 包含截止日整天
             udt = pd.to_datetime(u) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
             df = df[(df["published_at"].isna()) | (df["published_at"] <= udt)]
 
         return df.head(limit)
 
 
-# =========================
-# 单字典参数的便捷入口（兼容旧调用）
-# =========================
+# 便于直接使用的 JSON Facade（仅一个参数：股票代码）
 _DEF_NEWS: Optional[UnifiedNewsTool] = None
 
-def _coerce_news_params(
-    params: Optional[T.Union[dict, str]] = None,
-    **kwargs,
-) -> dict:
+def get_company_news_united(symbol: str) -> Dict[str, Any]:
     """
-    统一解析参数为 dict：
-    - params 为 dict：直接使用
-    - params 为 str：视为 symbol_or_name
-    - 兼容旧式 kwargs：symbol_or_name=..., limit=..., since=..., until=...
-    字段：
-      symbol_or_name: str       # 必填
-      limit: int = 50
-      since: "YYYY-MM-DD" | "YYYYMMDD" | None
-      until: "YYYY-MM-DD" | "YYYYMMDD" | None
-    """
-    if params is None:
-        params = {}
-    if isinstance(params, str):
-        params = {"symbol_or_name": params}
-    if not isinstance(params, dict):
-        raise ToolError("params must be a dict or a symbol/name string")
+    便捷入口：只传一支 A 股代码（支持 '600519' / '600519.SH' / 'sh600519'）。
+    默认新闻时间窗口：自 2024-10-01 至今天（含）。
 
-    merged = {**params, **kwargs}
-    q = merged.get("symbol_or_name") or merged.get("query") or merged.get("symbol") or merged.get("name")
-    if not q or not str(q).strip():
-        raise ToolError("`symbol_or_name` is required in params dict")
-
-    limit = int(merged.get("limit", 50))
-    since = merged.get("since")
-    until = merged.get("until")
-
-    limit = max(1, min(limit, 200))  # 安全上限
-
-    return {"symbol_or_name": str(q).strip(), "limit": limit, "since": since, "until": until}
-
-def get_company_news_united(
-    params: Optional[T.Union[dict, str]] = None,
-    **kwargs,
-) -> Dict[str, T.Any]:
-    """
-    单参数（dict）入口 —— 适配只能传一个参数给 Agent 的场景。
-
-    参数字典 schema：
+    返回 JSON:
     {
-      "symbol_or_name": "600519" | "贵州茅台",   # 必填
-      "limit": 50,                               # 选填，1~200
-      "since": "YYYY-MM-DD" | "YYYYMMDD",        # 选填
-      "until": "YYYY-MM-DD" | "YYYYMMDD"         # 选填
+      "symbol": "<输入的代码>",
+      "rows": [
+        {"published_at":"YYYY-MM-DD HH:MM:SS","title":"...","summary":"...","url":"...","source":"...","symbol":"600519","company_name":"贵州茅台"},
+        ...
+      ],
+      "vendor_meta": {"vendor": "eastmoney+sina+akshare", "cached": False, "since": "2024-10-01", "until": "YYYY-MM-DD"}
     }
-
-    兼容旧式调用：get_company_news_united("600519", limit=40, since="2025-01-01")
     """
-    p = _coerce_news_params(params, **kwargs)
-
     global _DEF_NEWS
     if _DEF_NEWS is None:
         _DEF_NEWS = UnifiedNewsTool()
 
-    df = _DEF_NEWS.get_company_news(
-        p["symbol_or_name"],
-        limit=p["limit"],
-        since=p["since"],
-        until=p["until"],
-    )
+    since = "2024-10-01"
+    until = _today_str()
 
-    payload: Dict[str, T.Any] = {
-        "query": p["symbol_or_name"],
+    df = _DEF_NEWS.get_company_news_by_code(symbol, limit=80, since=since, until=until)
+
+    payload: Dict[str, Any] = {
+        "symbol": symbol,
         "rows": [],
-        "vendor_meta": {"vendor": "eastmoney+sina+akshare", "cached": False},
+        "vendor_meta": {"vendor": "eastmoney+sina+akshare", "cached": False, "since": since, "until": until},
     }
 
     if df is None or df.empty:

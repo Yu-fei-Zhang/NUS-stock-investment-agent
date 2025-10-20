@@ -112,7 +112,7 @@ class IndustryRandomTopPicker:
 
     def __init__(self, rate_limit: RateLimiter | None = None):
         # 推荐：1.0 rps，桶 3，降低被限频概率
-        self.rl = rate_limit or RateLimiter(rate=0.5, capacity=2)
+        self.rl = rate_limit or RateLimiter(rate=0.3, capacity=1)
         self._ak = None
 
     def _ensure_ak(self):
@@ -142,7 +142,7 @@ class IndustryRandomTopPicker:
     def _fetch_industry_cons(self, industry_name: str) -> pd.DataFrame:
         ak = self._ensure_ak()
         self.rl.acquire()
-        df = with_retries(ak.stock_board_industry_cons_em, tries=6, delay=0.6, backoff=1.8)(
+        df = with_retries(ak.stock_board_industry_cons_em, tries=8, delay=1.2, backoff=2.0)(
             symbol=industry_name
         )
         if df is None or df.empty:
