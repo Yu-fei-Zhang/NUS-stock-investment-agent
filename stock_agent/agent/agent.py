@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import sys
 
+from langchain_community.tools import GoogleSearchResults
+
 from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool
 
 sys.path.append("C:\\Users\\张喻飞\\PycharmProjects\\NUS-stock-investment-agent\\stock_agent\\tools")
@@ -19,7 +21,8 @@ from stock_agent.tools.tools import alpha_vantage_search_stocks_tool, alpha_vant
 
 llm = ChatOpenAI(
     temperature=0.9,
-    api_key="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"
+    api_key="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",
+    model="gpt-4o"
 )
 history = RedisChatMessageHistory(
     session_id=str(random.randint(0, 99999999)),
@@ -37,7 +40,7 @@ memory = RedisChatMemory(
 tools = [a_share_random_industry_picks_tool]
 agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
                                                    + OrchestrationPrompt.STAGE2_PROMPT + OrchestrationPrompt.STAGE3_PROMPT + OrchestrationPrompt.STAGE4_PROMPT)
-agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=False)
+agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=True)
 
 print("✅ 股票投资咨询助手已启动！输入 '退出' 可结束对话。")
 while True:
@@ -61,6 +64,6 @@ while True:
 
     # 2.5 异常处理（如 API 调用失败、密钥错误等）
     except Exception as e:
-        print(f"❌ 对话出错：{str(e)[:100]}（请检查 API 密钥或网络）")
+        print(f"❌ 对话出错：{str(e)[:100]}")
         continue
 
