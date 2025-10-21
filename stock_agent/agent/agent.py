@@ -3,8 +3,10 @@ from __future__ import annotations
 import os
 import sys
 
+from langchain.memory import ConversationBufferMemory
 from langchain_community.tools import GoogleSearchResults
 
+from stock_agent.tools.rag_tool import RAGQATool
 from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool, \
     a_share_company_news_tool
 
@@ -25,19 +27,23 @@ llm = ChatOpenAI(
     api_key="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",
     model="gpt-4o"
 )
-history = RedisChatMessageHistory(
-    session_id=str(random.randint(0, 99999999)),
-    url="redis://localhost:6379/0",
-    key_prefix="chat:msg:"
-)
+# history = RedisChatMessageHistory(
+#     session_id=str(random.randint(0, 99999999)),
+#     url="redis://localhost:6379/0",
+#     key_prefix="chat:msg:"
+# )
+#
+# # ③ 记忆组件（return_messages=True 关键）
+# memory = RedisChatMemory(
+#     chat_memory=history,
+#     redis_url="redis://localhost:6379/0",
+#     return_messages=True,
+#     memory_key="chat_history"
+# )
 
-# ③ 记忆组件（return_messages=True 关键）
-memory = RedisChatMemory(
-    chat_memory=history,
-    redis_url="redis://localhost:6379/0",
-    return_messages=True,
-    memory_key="chat_history"
-)
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+return_messages=True)
 tools = [a_share_random_industry_picks_tool]
 agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
                                                    + OrchestrationPrompt.STAGE2_PROMPT + OrchestrationPrompt.STAGE3_PROMPT + OrchestrationPrompt.STAGE4_PROMPT)
