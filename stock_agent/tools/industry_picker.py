@@ -371,7 +371,7 @@ def get_random_a_share_sequence() -> T.Dict[str, T.Any]:
         _DEF_PICKER = IndustryRandomTopPicker()
 
     picker = _DEF_PICKER
-    k, n = 5, 5
+    k, n = 2, 1
     target = k * n
 
     try:
