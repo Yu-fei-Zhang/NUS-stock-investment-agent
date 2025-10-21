@@ -5,7 +5,8 @@ import sys
 
 from langchain_community.tools import GoogleSearchResults
 
-from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool
+from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool, \
+    a_share_company_news_tool
 
 sys.path.append("C:\\Users\\张喻飞\\PycharmProjects\\NUS-stock-investment-agent\\stock_agent\\tools")
 
@@ -20,7 +21,7 @@ from stock_agent.tools.tools import alpha_vantage_search_stocks_tool, alpha_vant
     alpha_vantage_get_technical_indicator_tool, alpha_vantage_get_company_news_tool, alpha_vantage_get_market_news_tool
 
 llm = ChatOpenAI(
-    temperature=0.9,
+    temperature=0,
     api_key="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",
     model="gpt-4o"
 )
