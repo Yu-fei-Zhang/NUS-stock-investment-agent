@@ -7,7 +7,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.tools import GoogleSearchResults
 
 from stock_agent.tools.rag_tool import RAGQATool
-from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool, a_share_company_news_tool
+from stock_agent.tools.tools_CN_A_share import a_share_random_industry_picks_tool, a_share_market_data_tool, a_share_company_news_tool,a_share_fundamentals_tool
 
 sys.path.append("C:\\Users\\张喻飞\\PycharmProjects\\NUS-stock-investment-agent\\stock_agent\\tools")
 
@@ -43,7 +43,7 @@ llm = ChatOpenAI(
 memory = ConversationBufferMemory(
     memory_key="chat_history",
 return_messages=True)
-tools = [a_share_random_industry_picks_tool, a_share_market_data_tool,a_share_company_news_tool]
+tools = [a_share_random_industry_picks_tool, a_share_market_data_tool,a_share_company_news_tool,a_share_fundamentals_tool]
 agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, system_message=OrchestrationPrompt.ROLE_PROMPT + OrchestrationPrompt.STAGE1_PROMPT
                                                    + OrchestrationPrompt.STAGE2_PROMPT + OrchestrationPrompt.STAGE3_PROMPT + OrchestrationPrompt.STAGE4_PROMPT)
 agent_executor = AgentExecutor(agent=agent,memory=memory ,tools=tools, verbose=True)

@@ -13,7 +13,8 @@ import json
 from stock_agent.tools import (
     get_stock_market_data_united,
     get_company_news_united,
-    get_random_a_share_sequence,   # zero-arg function (fixed internal logic)
+    get_random_a_share_sequence,
+    get_a_share_fundamentals                                # zero-arg function (fixed internal logic)
 )
 
 # =========================
@@ -81,6 +82,12 @@ class CompanyNewsParams(BaseModel):
         description="Use after a_share_random_industry_picks; provide one A-share code from its output, e.g., '600159'.",
     )
 
+class FundamentalsCodeParam(BaseModel):
+    code: str = Field(
+        ...,
+        description="Use after a_share_random_industry_picks; provide only one A-share code like '600519'.",
+    )
+
 @tool(
     name_or_callable="a_share_market_data",
     description="Use after a_share_random_industry_picks; retrieve recent market data for that stock.",
@@ -105,6 +112,15 @@ def a_share_company_news_tool(params_json: str) -> Dict[str, Any]:
     symbol = _coerce_symbol_from_input(params_json, key_candidates=("symbol_or_name", "symbol", "code"))
     # 你的底层函数现在只接受“代码字符串”
     return get_company_news_united(symbol)
+
+@tool(
+    name_or_callable="a_share_fundamentals",
+    description="Use after a_share_random_industry_picks; fetch the stock's latest fundamentals.",
+    args_schema=FundamentalsCodeParam,
+    return_direct=False,
+)
+def a_share_fundamentals_tool(code: str) -> Dict[str, Any]:
+    return get_a_share_fundamentals(code)
 
 # =========================
 # Random industry picks: permanently fixed input "1" (unchanged)

@@ -394,7 +394,7 @@ def get_company_news_united(symbol: str) -> Dict[str, Any]:
     if _DEF_NEWS is None:
         _DEF_NEWS = UnifiedNewsTool()
 
-    since = "2024-10-01"
+    since = "2025-08-01"
     until = _today_str()
 
     df = _DEF_NEWS.get_company_news_by_code(symbol, limit=80, since=since, until=until)
