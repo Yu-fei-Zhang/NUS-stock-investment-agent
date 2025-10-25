@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     // Add centered class back
                     inputContainer.classList.add('centered');
-
+                    
                     // Clear messages and show welcome screen
                     chatMessages.innerHTML = `
                         <div class="welcome-section">
@@ -93,6 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
             welcomeSection.style.display = 'none';
         }
 
+        // Change placeholder after first message
+        messageInput.placeholder = 'Ask me anything about stock investment strategies to continue.';
+
         // Add user message
         addMessage('user', message);
 
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
         messageInput.value = '';
         messageInput.style.height = 'auto';
 
-        // Add typing indicator
+        // Add typing indicator with "Processing..." text
         const typingIndicator = addTypingIndicator();
 
         try {
@@ -134,10 +137,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const chunk = decoder.decode(value, { stream: true });
                 accumulatedText += chunk;
-
-                // Update content with accumulated text
-                contentElement.textContent = accumulatedText;
-
+                
+                // Format and update content with accumulated text
+                contentElement.innerHTML = formatMessageContent(accumulatedText);
+                
                 // Scroll to bottom
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
@@ -159,13 +162,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function addMessage(role, content) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
-
-        const avatar = role === 'user'
+        
+        const avatar = role === 'user' 
             ? document.querySelector('.username').textContent.charAt(0).toUpperCase()
             : 'AI';
-
+        
         const roleName = role === 'user' ? 'You' : 'Investment Advisor';
-
+        
         messageDiv.innerHTML = `
             <div class="message-header">
                 <div class="message-avatar">${avatar}</div>
@@ -173,17 +176,17 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="message-content">${escapeHtml(content)}</div>
         `;
-
+        
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-
+        
         return messageDiv;
     }
 
     function createAssistantMessage() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant';
-
+        
         messageDiv.innerHTML = `
             <div class="message-header">
                 <div class="message-avatar">AI</div>
@@ -191,32 +194,31 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="message-content"></div>
         `;
-
+        
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-
+        
         return messageDiv;
     }
 
     function addTypingIndicator() {
         const indicatorDiv = document.createElement('div');
         indicatorDiv.className = 'message assistant';
-
+        
         indicatorDiv.innerHTML = `
             <div class="message-header">
                 <div class="message-avatar">AI</div>
                 <div class="message-role">Investment Advisor</div>
             </div>
-            <div class="typing-indicator">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
+            <div class="processing-indicator">
+                <div class="spinner"></div>
+                <span class="processing-text">Processing...</span>
             </div>
         `;
-
+        
         chatMessages.appendChild(indicatorDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
-
+        
         return indicatorDiv;
     }
 
@@ -224,6 +226,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function formatMessageContent(text) {
+        // Escape HTML first
+        let formatted = escapeHtml(text);
+        
+        // Replace numbered items like "1) " with proper formatting
+        formatted = formatted.replace(/(\d+)\)\s+([^\n]+)/g, '<div class="numbered-item"><span class="number">$1.</span> $2</div>');
+        
+        // Replace section headers (text ending with colon followed by content)
+        formatted = formatted.replace(/([A-Za-z &]+):\s+([^\n]+)/g, '<div class="section"><strong>$1:</strong> $2</div>');
+        
+        // Replace double line breaks with paragraph breaks
+        formatted = formatted.replace(/\n\n/g, '</p><p>');
+        
+        // Replace single line breaks with <br>
+        formatted = formatted.replace(/\n/g, '<br>');
+        
+        // Wrap in paragraph if not already wrapped
+        if (!formatted.startsWith('<div') && !formatted.startsWith('<p>')) {
+            formatted = '<p>' + formatted + '</p>';
+        }
+        
+        return formatted;
     }
 
     // Initial focus on input
