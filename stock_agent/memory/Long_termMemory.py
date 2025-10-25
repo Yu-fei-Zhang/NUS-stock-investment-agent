@@ -1,9 +1,10 @@
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, CSVLoader, UnstructuredExcelLoader
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 import os
+import pandas as pd
 from typing import List, Union
 
 
@@ -71,6 +72,7 @@ def Build_Vectorstore(
         return FAISS.load_local(index_path, embedding_model, allow_dangerous_deserialization=True)
 
     print("正在创建向量索引...")
+
     documents = Load_Documents(file_path)
 
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
@@ -119,7 +121,7 @@ def RAG_QA(question: str, vectorstore: FAISS, llm: ChatOpenAI, k: int = 8) -> st
 if __name__ == "__main__":
     llm, embedding_model = Init_Models()
 
-    vectorstore = Build_Vectorstore(file_path="../../Resource/docs")
+    vectorstore = Build_Vectorstore("../../Resource/docs/stock_data3.txt",)
     '''
     vectorstore = Build_Vectorstore(file_path=[
         "../../Resource/docs/beijing.txt",
@@ -128,9 +130,9 @@ if __name__ == "__main__":
     '''
 
     questions = [
-        "北京有什么著名的建筑？",
-        "北京和上海分别有什么大学？",
-        "上海是中国的首都吗？",
+        "介绍一下指数代码CESCPD",
+        "2002-12-31基日的指数都有什么",
+        "三板相关指数都有什么"
     ]
 
     for q in questions:
