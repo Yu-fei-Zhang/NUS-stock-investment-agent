@@ -246,6 +246,44 @@ body {
     overflow-wrap: break-word;
 }
 
+.message-content p {
+    margin: 0 0 16px 0;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.message-content .numbered-item {
+    margin: 12px 0;
+    padding-left: 0;
+    display: flex;
+    gap: 8px;
+    line-height: 1.6;
+}
+
+.message-content .numbered-item .number {
+    color: #3b82f6;
+    font-weight: 600;
+    flex-shrink: 0;
+    min-width: 20px;
+}
+
+.message-content .section {
+    margin: 16px 0 8px 0;
+    line-height: 1.6;
+}
+
+.message-content .section strong {
+    color: #1a202c;
+    font-weight: 600;
+}
+
+.message-content strong {
+    color: #1a202c;
+    font-weight: 600;
+}
+
 .message.user .message-content {
     color: #1a202c;
 }
@@ -254,40 +292,34 @@ body {
     color: #4a5568;
 }
 
-/* Typing Indicator */
-.typing-indicator {
+/* Processing Indicator */
+.processing-indicator {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
     padding: 12px 0;
     margin-left: 44px;
 }
 
-.typing-dot {
-    width: 8px;
-    height: 8px;
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #3b82f6;
     border-radius: 50%;
-    background: #cbd5e0;
-    animation: typing 1.4s infinite;
+    animation: spin 0.8s linear infinite;
 }
 
-.typing-dot:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-dot:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes typing {
-    0%, 60%, 100% {
-        transform: translateY(0);
-        opacity: 0.7;
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
-    30% {
-        transform: translateY(-10px);
-        opacity: 1;
-    }
+}
+
+.processing-text {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
 }
 
 /* Input Container */
@@ -426,33 +458,33 @@ body {
     .sidebar {
         width: 220px;
     }
-
+    
     .input-container.centered {
         width: calc(100% - 240px);
         max-width: 800px;
     }
-
+    
     .input-container.centered .input-wrapper {
         padding: 0 15px;
     }
-
+    
     .chat-container {
         max-width: 100%;
     }
-
+    
     .welcome-section {
         padding: 30px 20px 80px;
         margin: 80px auto 0;
     }
-
+    
     .welcome-section h2 {
         font-size: 32px;
     }
-
+    
     .welcome-section > p {
         font-size: 16px;
     }
-
+    
     .welcome-icon svg {
         width: 72px;
         height: 72px;
@@ -463,52 +495,52 @@ body {
     .sidebar {
         display: none;
     }
-
+    
     .input-container.centered {
         width: 95%;
         max-width: 100%;
     }
-
+    
     .input-container.centered .input-wrapper {
         padding: 0 10px;
     }
-
+    
     .chat-messages {
         padding: 20px 16px;
     }
-
+    
     .input-container {
         padding: 20px 16px;
     }
-
+    
     .input-wrapper {
         max-width: 100%;
     }
-
+    
     .welcome-section {
         padding: 20px 16px 60px;
         margin: 60px auto 0;
     }
-
+    
     .welcome-section h2 {
         font-size: 28px;
     }
-
+    
     .welcome-section > p {
         font-size: 15px;
     }
-
+    
     #messageInput {
         font-size: 15px;
         padding: 12px 16px;
         min-height: 46px;
     }
-
+    
     .send-button {
         width: 46px;
         height: 46px;
     }
-
+    
     .input-wrapper {
         gap: 12px;
     }
