@@ -24,7 +24,7 @@ If the agent get a user's investment profile, including investment goal and risk
 | ZHANG ZEYU       | A0328897A                     | agent tools design and implemention             | E1553224@u.nus.edu      |
 | TANG Yutong       | A0330149L                     | Long-term Memory and Full-Stack Web Application | e1554476@u.nus.edu    |
 | CHEN JINGHAO        | A0329642Y                    | implement short term memory                     | e1553969@u.nus.edu      |
-| Jeanette Lim       | A1234567E                     | xxxxxxxxxxx yyyyyyyyyyy zzzzzzzzzzz             | A1234567E@qq.com         |
+| Shi Junren       | A0329467N                     | Tools and report prompt design             | e1553794@u.nus.edu         |
 
 ## SECTION 4 : VIDEO OF SYSTEM MODELLING & USE CASE DEMO
 [ab196b71da77bf6ad985acbe37140db9.mp4](Resource/ab196b71da77bf6ad985acbe37140db9.mp4)
